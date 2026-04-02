@@ -193,21 +193,57 @@ def decompose_track(audio_bytes: bytes, filename: str, session_id: str):
     with open(input_path, "wb") as f:
         f.write(audio_bytes)
 
+    # Convert video/non-standard formats to wav first
+    if ext.lower() in ['.mp4', '.m4v', '.webm', '.m4a', '.aac']:
+        wav_path = "/tmp/input_converted.wav"
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", input_path, "-vn", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", wav_path],
+            check=True, capture_output=True,
+        )
+        input_path = wav_path
+
     # 1. Run Demucs (all 4 stems)
     demucs_out = "/tmp/demucs_out"
-    subprocess.run(
+    # Clean previous run
+    if os.path.exists(demucs_out):
+        import shutil
+        shutil.rmtree(demucs_out)
+    
+    result = subprocess.run(
         [
             "python", "-m", "demucs",
             "-n", "htdemucs_ft",
             "-o", demucs_out,
             input_path,
         ],
-        check=True,
+        capture_output=True, text=True,
     )
+    
+    # Fallback to lighter model if htdemucs_ft fails
+    if result.returncode != 0:
+        print(f"htdemucs_ft failed: {result.stderr}, trying htdemucs...")
+        result = subprocess.run(
+            [
+                "python", "-m", "demucs",
+                "-n", "htdemucs",
+                "-o", demucs_out,
+                input_path,
+            ],
+            check=True, capture_output=True, text=True,
+        )
 
-    # Find stem files
+    # Find stem files (handle both htdemucs_ft and htdemucs model names)
     track_name = os.path.splitext(os.path.basename(input_path))[0]
     stems_dir = os.path.join(demucs_out, "htdemucs_ft", track_name)
+    if not os.path.exists(stems_dir):
+        stems_dir = os.path.join(demucs_out, "htdemucs", track_name)
+    if not os.path.exists(stems_dir):
+        # Try to find any model output directory
+        for d in os.listdir(demucs_out):
+            candidate = os.path.join(demucs_out, d, track_name)
+            if os.path.exists(candidate):
+                stems_dir = candidate
+                break
 
     # 2. Analyze original
     original_analysis = analyze_audio(input_path)
@@ -295,8 +331,13 @@ def web():
     async def decompose(file: UploadFile = File(...)):
         session_id = str(uuid.uuid4())
         audio_bytes = await file.read()
-        # Call GPU function
-        manifest = decompose_track.remote(audio_bytes, file.filename or "upload.wav", session_id)
+        print(f"Decompose: file={file.filename}, size={len(audio_bytes)}, session={session_id}")
+        try:
+            # Call GPU function
+            manifest = decompose_track.remote(audio_bytes, file.filename or "upload.wav", session_id)
+        except Exception as e:
+            print(f"Decompose error: {e}")
+            return JSONResponse(status_code=500, content={"error": str(e), "session_id": session_id})
 
         # Add download URLs
         base_url = f"/fragments/{session_id}"

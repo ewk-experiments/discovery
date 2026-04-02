@@ -9,6 +9,17 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <script>
+    // Immediately check for OAuth token before anything renders
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('token');
+      if (token) {
+        sessionStorage.setItem('github_token', token);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    })();
+  </script>
 
   <!-- GitHub OAuth Login Overlay -->
   <div class="login-overlay" id="loginOverlay">

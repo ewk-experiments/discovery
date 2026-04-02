@@ -125,26 +125,61 @@
         <div class="panel-header">
           <span class="panel-title">Vibe Mixer</span>
         </div>
-        <div class="vibe-controls">
-          <div class="vibe-control">
-            <label><span class="vibe-label">Chop</span><span class="vibe-value mono">72%</span></label>
-            <input type="range" min="0" max="100" value="72" data-param="choppiness">
+        <div class="vibe-controls" id="vibeControls">
+          <div class="vibe-control" data-param="choppiness" data-min="0" data-max="100" data-value="72">
+            <div class="knob-container">
+              <svg viewBox="0 0 44 44" width="44" height="44">
+                <circle class="knob-ring" cx="22" cy="22" r="18"/>
+                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="31.7" transform="rotate(-135 22 22)"/>
+                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+              </svg>
+            </div>
+            <span class="vibe-value mono">72%</span>
+            <span class="vibe-label">Chop</span>
           </div>
-          <div class="vibe-control">
-            <label><span class="vibe-label">Density</span><span class="vibe-value mono">58%</span></label>
-            <input type="range" min="0" max="100" value="58" data-param="density">
+          <div class="vibe-control" data-param="density" data-min="0" data-max="100" data-value="58">
+            <div class="knob-container">
+              <svg viewBox="0 0 44 44" width="44" height="44">
+                <circle class="knob-ring" cx="22" cy="22" r="18"/>
+                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="47.5" transform="rotate(-135 22 22)"/>
+                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+              </svg>
+            </div>
+            <span class="vibe-value mono">58%</span>
+            <span class="vibe-label">Density</span>
           </div>
-          <div class="vibe-control">
-            <label><span class="vibe-label">Harmonic</span><span class="vibe-value mono">40%</span></label>
-            <input type="range" min="0" max="100" value="40" data-param="harmonic">
+          <div class="vibe-control" data-param="harmonic" data-min="0" data-max="100" data-value="40">
+            <div class="knob-container">
+              <svg viewBox="0 0 44 44" width="44" height="44">
+                <circle class="knob-ring" cx="22" cy="22" r="18"/>
+                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="67.9" transform="rotate(-135 22 22)"/>
+                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+              </svg>
+            </div>
+            <span class="vibe-value mono">40%</span>
+            <span class="vibe-label">Harmonic</span>
           </div>
-          <div class="vibe-control">
-            <label><span class="vibe-label">Tempo</span><span class="vibe-value mono">128</span></label>
-            <input type="range" min="60" max="180" value="128" data-param="tempo">
+          <div class="vibe-control" data-param="tempo" data-min="60" data-max="180" data-value="128">
+            <div class="knob-container">
+              <svg viewBox="0 0 44 44" width="44" height="44">
+                <circle class="knob-ring" cx="22" cy="22" r="18"/>
+                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="31.7" transform="rotate(-135 22 22)"/>
+                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+              </svg>
+            </div>
+            <span class="vibe-value mono">128</span>
+            <span class="vibe-label">Tempo</span>
           </div>
-          <div class="vibe-control">
-            <label><span class="vibe-label">Groove</span><span class="vibe-value mono">85%</span></label>
-            <input type="range" min="0" max="100" value="85" data-param="groove">
+          <div class="vibe-control" data-param="groove" data-min="0" data-max="100" data-value="85">
+            <div class="knob-container">
+              <svg viewBox="0 0 44 44" width="44" height="44">
+                <circle class="knob-ring" cx="22" cy="22" r="18"/>
+                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="17" transform="rotate(-135 22 22)"/>
+                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+              </svg>
+            </div>
+            <span class="vibe-value mono">85%</span>
+            <span class="vibe-label">Groove</span>
           </div>
         </div>
       </div>
@@ -404,15 +439,74 @@
     setTimeout(() => { drawMiniWaveforms(); drawBlockWaveforms(); }, 120);
     window.addEventListener('resize', () => { drawMiniWaveforms(); drawBlockWaveforms(); });
 
-    // --- Vibe mixer ---
-    document.querySelectorAll('input[type="range"]').forEach(slider => {
-      slider.addEventListener('input', () => {
-        const val = slider.dataset.param === 'tempo' ? slider.value : slider.value + '%';
-        slider.closest('.vibe-control').querySelector('.vibe-value').textContent = val;
-        if (slider.dataset.param === 'tempo') {
-          document.getElementById('bpmDisplay').textContent = slider.value;
-        }
-      });
+    // --- Knob controls ---
+    const ARC_TOTAL = 270; // degrees of travel
+    const CIRCUMFERENCE = 2 * Math.PI * 18; // r=18
+
+    function updateKnob(control, value) {
+      const min = parseFloat(control.dataset.min);
+      const max = parseFloat(control.dataset.max);
+      const pct = (value - min) / (max - min);
+      control.dataset.value = value;
+
+      // Update arc
+      const arcLength = pct * (ARC_TOTAL / 360) * CIRCUMFERENCE;
+      const offset = CIRCUMFERENCE - arcLength;
+      const track = control.querySelector('.knob-track');
+      track.setAttribute('stroke-dashoffset', offset);
+
+      // Update dot position (rotate around center)
+      const angle = -135 + pct * ARC_TOTAL;
+      const rad = angle * Math.PI / 180;
+      const dot = control.querySelector('.knob-dot');
+      const cx = 22 + 18 * Math.sin(rad);
+      const cy = 22 - 18 * Math.cos(rad);
+      dot.setAttribute('cx', cx);
+      dot.setAttribute('cy', cy);
+
+      // Update value display
+      const display = control.querySelector('.vibe-value');
+      if (control.dataset.param === 'tempo') {
+        display.textContent = Math.round(value);
+        document.getElementById('bpmDisplay').textContent = Math.round(value);
+      } else {
+        display.textContent = Math.round(value) + '%';
+      }
+    }
+
+    // Init knobs
+    document.querySelectorAll('.vibe-control[data-param]').forEach(control => {
+      updateKnob(control, parseFloat(control.dataset.value));
+    });
+
+    // Drag interaction for knobs
+    let activeKnob = null;
+    let knobStartY = 0;
+    let knobStartValue = 0;
+
+    document.addEventListener('mousedown', e => {
+      const knobContainer = e.target.closest('.knob-container');
+      if (!knobContainer) return;
+      const control = knobContainer.closest('.vibe-control');
+      if (!control) return;
+      activeKnob = control;
+      knobStartY = e.clientY;
+      knobStartValue = parseFloat(control.dataset.value);
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!activeKnob) return;
+      const min = parseFloat(activeKnob.dataset.min);
+      const max = parseFloat(activeKnob.dataset.max);
+      const range = max - min;
+      const delta = (knobStartY - e.clientY) * (range / 150); // 150px drag = full range
+      const newValue = Math.max(min, Math.min(max, knobStartValue + delta));
+      updateKnob(activeKnob, newValue);
+    });
+
+    document.addEventListener('mouseup', () => {
+      activeKnob = null;
     });
 
     // --- Transport ---

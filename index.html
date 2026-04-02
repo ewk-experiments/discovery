@@ -688,6 +688,591 @@
         dragBlock = null;
       }
     });
+
+    // =========================================================================
+    // API Integration & Functional Wiring
+    // =========================================================================
+
+    const API_BASE = ''; // Will be set after Modal deploy
+
+    // --- State ---
+    let currentSessionId = null;
+    let audioCtx = null;
+    let audioBuffers = {};      // fragmentId -> AudioBuffer
+    let activeAudioSources = []; // currently playing nodes
+    let realSources = [];        // API-returned source data
+    let realFragments = [];      // API-returned fragment data
+    let arrangementData = null;  // API-returned arrangement
+
+    function getAudioContext() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    // --- API Functions ---
+
+    async function uploadTrack(file) {
+      if (!API_BASE) {
+        console.warn('API_BASE not set — running in demo mode');
+        return null;
+      }
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+      return res.json();
+    }
+
+    async function getFragments(sessionId) {
+      if (!API_BASE) return null;
+      const res = await fetch(`${API_BASE}/sessions/${sessionId}/fragments`);
+      if (!res.ok) throw new Error(`Get fragments failed: ${res.status}`);
+      return res.json();
+    }
+
+    async function generateArrangement(fragmentIds, vibeParams) {
+      if (!API_BASE) return null;
+      const res = await fetch(`${API_BASE}/arrange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fragment_ids: fragmentIds, vibe: vibeParams }),
+      });
+      if (!res.ok) throw new Error(`Arrange failed: ${res.status}`);
+      return res.json();
+    }
+
+    async function exportArrangement(arrangement) {
+      if (!API_BASE) return null;
+      const res = await fetch(`${API_BASE}/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(arrangement),
+      });
+      if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+      return res.blob();
+    }
+
+    // --- Upload Zone ---
+
+    const uploadZone = document.getElementById('uploadZone');
+    const ACCEPTED_AUDIO = ['.mp3','.wav','.flac','.aac','.ogg','.m4a'];
+    const ACCEPTED_MIME = ['audio/mpeg','audio/wav','audio/x-wav','audio/flac','audio/aac','audio/ogg','audio/mp4','audio/x-m4a'];
+
+    // Hidden file input
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = ACCEPTED_AUDIO.join(',');
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) handleFiles(Array.from(fileInput.files));
+      fileInput.value = '';
+    });
+
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files).filter(f =>
+        ACCEPTED_MIME.includes(f.type) || ACCEPTED_AUDIO.some(ext => f.name.toLowerCase().endsWith(ext))
+      );
+      if (files.length) handleFiles(files);
+    });
+
+    async function handleFiles(files) {
+      for (const file of files) {
+        // Add a loading source card
+        const idx = sources.length;
+        const loadingSource = {
+          name: file.name.replace(/\.[^.]+$/, ''),
+          bpm: '...',
+          key: '...',
+          duration: formatDuration(0),
+          fragments: 0,
+          loading: true,
+          file: file,
+        };
+        sources.push(loadingSource);
+        renderSourceList();
+
+        // Decode audio locally for waveform
+        try {
+          const ctx = getAudioContext();
+          const arrayBuf = await file.arrayBuffer();
+          const audioBuf = await ctx.decodeAudioData(arrayBuf.slice(0));
+          loadingSource.duration = formatDuration(audioBuf.duration);
+          loadingSource.audioBuffer = audioBuf;
+          renderSourceList();
+        } catch (e) {
+          console.warn('Could not decode audio locally:', e);
+        }
+
+        // Upload to API if available
+        try {
+          const result = await uploadTrack(file);
+          if (result) {
+            loadingSource.loading = false;
+            loadingSource.bpm = result.bpm || loadingSource.bpm;
+            loadingSource.key = result.key || loadingSource.key;
+            loadingSource.fragments = result.fragment_count || 0;
+            currentSessionId = result.session_id || currentSessionId;
+
+            // Fetch real fragments
+            if (currentSessionId) {
+              const fragData = await getFragments(currentSessionId);
+              if (fragData && fragData.fragments) {
+                realFragments = realFragments.concat(fragData.fragments.map(f => ({
+                  ...f,
+                  src: idx,
+                  id: f.id || f.name,
+                })));
+                renderFragmentList();
+              }
+            }
+
+            // Fetch real stems
+            if (result.stems) {
+              result.stems.forEach(stem => {
+                realSources.push({ ...stem, parentIdx: idx });
+              });
+            }
+
+            renderSourceList();
+          } else {
+            // Demo mode — mark as done
+            loadingSource.loading = false;
+            loadingSource.bpm = estimateBPM();
+            loadingSource.key = '—';
+            loadingSource.fragments = 0;
+            renderSourceList();
+          }
+        } catch (err) {
+          console.error('Upload error:', err);
+          loadingSource.loading = false;
+          loadingSource.bpm = estimateBPM();
+          loadingSource.key = '—';
+          renderSourceList();
+        }
+      }
+    }
+
+    function formatDuration(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function estimateBPM() {
+      return Math.round(110 + Math.random() * 30);
+    }
+
+    // --- Re-render source list (preserves placeholder + real) ---
+    function renderSourceList() {
+      sourceList.innerHTML = '';
+      sources.forEach((s, i) => {
+        const card = document.createElement('div');
+        card.className = 'source-card' + (i === 0 ? ' active' : '');
+        card.setAttribute('data-fig', 'FIG. 0' + (i + 1));
+        const bpmText = s.loading ? '...' : s.bpm;
+        const keyText = s.loading ? '...' : s.key;
+        card.innerHTML = `
+          <div class="source-name">${s.name}</div>
+          <div class="source-meta"><span>${bpmText} BPM</span><span>${keyText}</span><span>${s.duration}</span></div>
+          <div class="source-waveform"><canvas data-src="${i}"></canvas></div>
+          <div class="source-badge mono">${s.loading ? 'Analyzing...' : s.fragments + ' fragments extracted'}</div>
+        `;
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.source-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          highlightFragmentsForSource(i);
+        });
+        sourceList.appendChild(card);
+      });
+      // Draw waveforms — use real audio data if available
+      document.querySelectorAll('.source-waveform canvas').forEach((c, i) => {
+        if (sources[i] && sources[i].audioBuffer) {
+          drawRealWaveform(c, sources[i].audioBuffer);
+        } else {
+          drawWireframeWave(c, i * 47, { weight: 1.5, dash: [], opacity: 0.5 });
+        }
+      });
+    }
+
+    // --- Draw real waveform from AudioBuffer ---
+    function drawRealWaveform(canvas, audioBuffer) {
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0) return;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = rect.width, h = rect.height, mid = h / 2;
+
+      const data = audioBuffer.getChannelData(0);
+      const step = Math.ceil(data.length / w);
+
+      ctx.strokeStyle = 'rgba(30, 30, 30, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < w; i++) {
+        const start = i * step;
+        let min = 1, max = -1;
+        for (let j = 0; j < step && start + j < data.length; j++) {
+          const val = data[start + j];
+          if (val < min) min = val;
+          if (val > max) max = val;
+        }
+        ctx.moveTo(i, mid + min * mid * 0.9);
+        ctx.lineTo(i, mid + max * mid * 0.9);
+      }
+      ctx.stroke();
+    }
+
+    // --- Fragment list rendering (merges placeholder + real) ---
+    function renderFragmentList() {
+      const activeTab = document.querySelector('.fragment-tab.active');
+      const cat = activeTab ? activeTab.dataset.cat : 'all';
+      const allFrags = realFragments.length > 0 ? realFragments : fragments;
+      const filtered = cat === 'all' ? allFrags : allFrags.filter(f => f.cat === cat);
+      document.getElementById('fragCount').textContent = filtered.length;
+      fragmentList.innerHTML = '';
+      filtered.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'fragment-item';
+        item.draggable = true;
+        item.setAttribute('data-fragment-id', f.id || f.name);
+        item.innerHTML = `
+          <div class="frag-color"></div>
+          <div class="frag-wave"><canvas data-frag="${f.name}"></canvas></div>
+          <div class="frag-info">
+            <div class="frag-name mono">${f.name}</div>
+            <div class="frag-meta">${f.dur || f.duration || '—'} / ${f.key || '—'}</div>
+          </div>
+          <button class="frag-play">&#9654;</button>
+        `;
+
+        // Play button
+        item.querySelector('.frag-play').addEventListener('click', e => {
+          e.stopPropagation();
+          playFragment(f);
+        });
+
+        // Drag to timeline
+        item.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('application/json', JSON.stringify(f));
+          e.dataTransfer.effectAllowed = 'copy';
+        });
+
+        fragmentList.appendChild(item);
+      });
+      drawMiniWaveforms();
+    }
+
+    // --- Highlight fragments from a specific source ---
+    function highlightFragmentsForSource(srcIdx) {
+      document.querySelectorAll('.fragment-item').forEach(item => {
+        item.style.opacity = '';
+      });
+      const allFrags = realFragments.length > 0 ? realFragments : fragments;
+      const fragNames = new Set(allFrags.filter(f => f.src === srcIdx).map(f => f.id || f.name));
+      if (fragNames.size === 0) return;
+      document.querySelectorAll('.fragment-item').forEach(item => {
+        const id = item.getAttribute('data-fragment-id');
+        item.style.opacity = fragNames.has(id) ? '' : '0.3';
+      });
+    }
+
+    // --- Fragment playback ---
+    async function playFragment(fragment) {
+      const ctx = getAudioContext();
+      const fragId = fragment.id || fragment.name;
+
+      // If we have a cached buffer, play it
+      if (audioBuffers[fragId]) {
+        const src = ctx.createBufferSource();
+        src.buffer = audioBuffers[fragId];
+        src.connect(ctx.destination);
+        src.start();
+        return;
+      }
+
+      // If API available and fragment has a URL, fetch it
+      if (API_BASE && fragment.audio_url) {
+        try {
+          const res = await fetch(fragment.audio_url);
+          const buf = await res.arrayBuffer();
+          const decoded = await ctx.decodeAudioData(buf);
+          audioBuffers[fragId] = decoded;
+          const src = ctx.createBufferSource();
+          src.buffer = decoded;
+          src.connect(ctx.destination);
+          src.start();
+          return;
+        } catch (e) {
+          console.warn('Could not fetch fragment audio:', e);
+        }
+      }
+
+      // Fallback: if parent source has audioBuffer, play a slice
+      const parentSource = sources[fragment.src];
+      if (parentSource && parentSource.audioBuffer) {
+        const audioBuf = parentSource.audioBuffer;
+        const dur = parseFloat(fragment.dur || fragment.duration) || 0.5;
+        const startSec = (fragment.start_time != null) ? fragment.start_time : Math.random() * Math.max(0, audioBuf.duration - dur);
+        const sampleRate = audioBuf.sampleRate;
+        const startSample = Math.floor(startSec * sampleRate);
+        const numSamples = Math.floor(dur * sampleRate);
+        const sliceBuf = ctx.createBuffer(audioBuf.numberOfChannels, numSamples, sampleRate);
+        for (let ch = 0; ch < audioBuf.numberOfChannels; ch++) {
+          const src = audioBuf.getChannelData(ch);
+          const dst = sliceBuf.getChannelData(ch);
+          for (let i = 0; i < numSamples && startSample + i < src.length; i++) {
+            dst[i] = src[startSample + i];
+          }
+        }
+        audioBuffers[fragId] = sliceBuf;
+        const source = ctx.createBufferSource();
+        source.buffer = sliceBuf;
+        source.connect(ctx.destination);
+        source.start();
+      }
+    }
+
+    // --- Timeline: accept fragment drops ---
+    timelineTracks.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    timelineTracks.addEventListener('drop', e => {
+      e.preventDefault();
+      try {
+        const fragData = JSON.parse(e.dataTransfer.getData('application/json'));
+        const trackEl = e.target.closest('.track');
+        if (!trackEl) return;
+        const content = trackEl.querySelector('.track-content');
+        const rect = content.getBoundingClientRect();
+        const leftPos = e.clientX - rect.left;
+        const durSec = parseFloat(fragData.dur || fragData.duration) || 1;
+        const pxPerSec = 80; // approximate
+        const widthPx = Math.max(30, durSec * pxPerSec);
+        const catType = fragData.cat || 'texture';
+
+        const block = document.createElement('div');
+        block.className = `sample-block ${catType}`;
+        block.style.left = leftPos + 'px';
+        block.style.width = widthPx + 'px';
+        block.draggable = true;
+        block.title = fragData.name;
+        block.innerHTML = `
+          <canvas class="block-waveform"></canvas>
+          <span class="block-label mono">${fragData.name.substring(0, 8)}</span>
+        `;
+        content.appendChild(block);
+
+        // Draw waveform on new block
+        const c = block.querySelector('.block-waveform');
+        const style = lineStyles[catType] || { weight: 1, dash: [], opacity: 0.5 };
+        setTimeout(() => drawWireframeWave(c, Math.random() * 100, style), 50);
+      } catch (err) {
+        // Not a fragment drop
+      }
+    });
+
+    // --- Arrangement rendering from API ---
+    function renderArrangement(arrangement) {
+      arrangementData = arrangement;
+      if (!arrangement || !arrangement.tracks) return;
+
+      timelineTracks.innerHTML = '<div class="playhead" id="playhead"></div>';
+
+      arrangement.tracks.forEach((t, ti) => {
+        const track = document.createElement('div');
+        track.className = 'track';
+        const label = t.label || ['VOX','CHRD','TEX','PERC','HITS'][ti] || `T${ti+1}`;
+        track.innerHTML = `
+          <div class="track-header">
+            <span class="track-label mono">${label}</span>
+            <div class="track-controls">
+              <button class="track-btn mute" title="Mute">M</button>
+              <button class="track-btn solo" title="Solo">S</button>
+            </div>
+          </div>
+          <div class="track-content">
+            ${(t.blocks || []).map((b, bi) => {
+              const pxPerSec = 80;
+              const leftPx = (b.start_time || 0) * pxPerSec;
+              const widthPx = Math.max(20, (b.duration || 0.5) * pxPerSec);
+              const type = b.type || b.cat || 'texture';
+              return `<div class="sample-block ${type}" style="left:${leftPx}px;width:${widthPx}px" draggable="true" title="${b.name || ''}">
+                <canvas class="block-waveform"></canvas>
+                <span class="block-label mono">${label}.${bi+1}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        `;
+        timelineTracks.appendChild(track);
+      });
+
+      drawBlockWaveforms();
+
+      // Update header meta
+      if (arrangement.bpm) {
+        document.querySelector('.header-center').innerHTML = `
+          <span class="project-meta mono">T: ${arrangement.bpm}</span>
+          <span class="meta-dot"></span>
+          <span class="project-meta mono">K: ${arrangement.key || '—'}</span>
+          <span class="meta-dot"></span>
+          <span class="project-meta mono">${formatDuration(arrangement.duration || 0)}</span>
+        `;
+        document.getElementById('bpmDisplay').textContent = arrangement.bpm;
+      }
+    }
+
+    // --- Web Audio Playback for arrangement ---
+    function playArrangement() {
+      if (!arrangementData || !arrangementData.tracks) return false;
+      const ctx = getAudioContext();
+      stopArrangementPlayback();
+
+      const startT = ctx.currentTime;
+      arrangementData.tracks.forEach(t => {
+        (t.blocks || []).forEach(b => {
+          const fragId = b.fragment_id || b.name;
+          if (audioBuffers[fragId]) {
+            const src = ctx.createBufferSource();
+            src.buffer = audioBuffers[fragId];
+            src.connect(ctx.destination);
+            const offset = b.start_time || 0;
+            src.start(startT + offset);
+            activeAudioSources.push(src);
+          }
+        });
+      });
+
+      return activeAudioSources.length > 0;
+    }
+
+    function stopArrangementPlayback() {
+      activeAudioSources.forEach(s => { try { s.stop(); } catch(e) {} });
+      activeAudioSources = [];
+    }
+
+    // --- Wire play/stop to real audio ---
+    const origPlayHandler = playBtn.onclick;
+    playBtn.removeEventListener('click', () => {}); // noop, we re-add below
+
+    // Patch play button to attempt real playback
+    const _origPlayClick = playBtn.cloneNode(true);
+    playBtn.parentNode.replaceChild(_origPlayClick, playBtn);
+    const newPlayBtn = _origPlayClick;
+    newPlayBtn.id = 'playBtn';
+
+    let isPlaying = false;
+    let playStartTime = 0;
+    let playAnimFrame = null;
+    const newPlayhead = document.getElementById('playhead');
+
+    newPlayBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        // Try real arrangement playback
+        const hasReal = playArrangement();
+        const ctx = hasReal ? getAudioContext() : null;
+        playStartTime = ctx ? ctx.currentTime : performance.now() / 1000;
+        startTime = 0;
+
+        function animatePlayhead(ts) {
+          if (!startTime) startTime = ts;
+          const elapsed = ts - startTime;
+          const pos = 60 + (elapsed * 0.08);
+          if (pos > 960) { startTime = ts; }
+          if (newPlayhead) newPlayhead.style.left = Math.min(pos, 960) + 'px';
+          transportTime.textContent = formatTime(elapsed);
+          const mL = document.getElementById('meterL');
+          const mR = document.getElementById('meterR');
+          if (mL && mR) {
+            mL.style.width = (40 + Math.sin(elapsed * 0.005) * 25 + Math.sin(elapsed * 0.013) * 10) + '%';
+            mR.style.width = (38 + Math.sin(elapsed * 0.006 + 1) * 22 + Math.sin(elapsed * 0.011) * 12) + '%';
+          }
+          if (isPlaying) playAnimFrame = requestAnimationFrame(animatePlayhead);
+        }
+        playAnimFrame = requestAnimationFrame(animatePlayhead);
+        newPlayBtn.classList.add('playing');
+        newPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="0"/><rect x="14" y="5" width="4" height="14" rx="0"/></svg>';
+      } else {
+        cancelAnimationFrame(playAnimFrame);
+        stopArrangementPlayback();
+        newPlayBtn.classList.remove('playing');
+        newPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,5 19,12 8,19"/></svg>';
+      }
+    });
+
+    // Patch stop
+    stopBtn.addEventListener('click', () => {
+      isPlaying = false;
+      cancelAnimationFrame(playAnimFrame);
+      stopArrangementPlayback();
+      if (newPlayhead) newPlayhead.style.left = '60px';
+      transportTime.textContent = '00:00.000';
+      newPlayBtn.classList.remove('playing');
+      newPlayBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,5 19,12 8,19"/></svg>';
+    });
+
+    // --- Regenerate button ---
+    document.querySelector('.regen-btn').addEventListener('click', async () => {
+      if (!API_BASE || !currentSessionId) {
+        console.log('Demo mode — regenerate is a no-op without API');
+        return;
+      }
+      const vibeParams = {};
+      document.querySelectorAll('.vibe-control[data-param]').forEach(c => {
+        vibeParams[c.dataset.param] = parseFloat(c.dataset.value);
+      });
+      const fragIds = (realFragments.length > 0 ? realFragments : fragments).map(f => f.id || f.name);
+      try {
+        const arrangement = await generateArrangement(fragIds, vibeParams);
+        if (arrangement) renderArrangement(arrangement);
+      } catch (e) {
+        console.error('Regenerate failed:', e);
+      }
+    });
+
+    // --- Export button ---
+    document.querySelector('.header-btn.primary').addEventListener('click', async () => {
+      if (!API_BASE || !arrangementData) {
+        console.log('Demo mode — export is a no-op without API');
+        return;
+      }
+      try {
+        const blob = await exportArrangement(arrangementData);
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'discovery-export.wav';
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      } catch (e) {
+        console.error('Export failed:', e);
+      }
+    });
+
+    // --- Wire fragment tabs to new render ---
+    document.querySelectorAll('.fragment-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.fragment-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderFragmentList();
+      });
+    });
+
+    // --- Add button wires to upload ---
+    document.querySelector('.panel-action').addEventListener('click', () => fileInput.click());
+
   </script>
 
 </body>

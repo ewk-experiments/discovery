@@ -255,11 +255,11 @@
 
     // Line styles per type (monochromatic)
     const lineStyles = {
-      vocal:   { weight: 1.5, dash: [], opacity: 0.8 },
-      chord:   { weight: 1,   dash: [4, 3], opacity: 0.6 },
-      texture: { weight: 0.5, dash: [], opacity: 0.35 },
-      perc:    { weight: 1.5, dash: [2, 2], opacity: 0.7 },
-      oneshot: { weight: 2,   dash: [], opacity: 0.9 }
+      vocal:   { weight: 2,   dash: [], opacity: 0.85 },
+      chord:   { weight: 1.5, dash: [4, 3], opacity: 0.65 },
+      texture: { weight: 1,   dash: [], opacity: 0.45 },
+      perc:    { weight: 2,   dash: [2, 2], opacity: 0.75 },
+      oneshot: { weight: 2.5, dash: [], opacity: 0.9 }
     };
 
     // --- Render sources ---
@@ -376,10 +376,10 @@
 
     function drawMiniWaveforms() {
       document.querySelectorAll('.source-waveform canvas').forEach((c, i) => {
-        drawWireframeWave(c, i * 47, { weight: 1, dash: [], opacity: 0.4 });
+        drawWireframeWave(c, i * 47, { weight: 1.5, dash: [], opacity: 0.5 });
       });
       document.querySelectorAll('.frag-wave canvas').forEach((c, i) => {
-        drawWireframeWave(c, i * 31, { weight: 0.75, dash: [], opacity: 0.3 });
+        drawWireframeWave(c, i * 31, { weight: 1.2, dash: [], opacity: 0.4 });
       });
     }
 

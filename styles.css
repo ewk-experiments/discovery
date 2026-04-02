@@ -3,6 +3,152 @@
    Research instrument for sound
    ========================================= */
 
+/* ── Login Overlay ─────────────────────── */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.login-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.login-title {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 300;
+  letter-spacing: 0.35em;
+  color: var(--ink);
+}
+.login-subtitle {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 300;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
+.login-github-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.login-github-btn:hover {
+  background: rgba(0,0,0,0.04);
+  border-color: var(--ink);
+}
+.login-note {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin-top: -4px;
+}
+.login-skip {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.login-skip:hover {
+  color: var(--ink);
+}
+
+/* Auth status indicator in header */
+.auth-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  transition: border-color var(--transition);
+}
+.auth-indicator:hover {
+  border-color: var(--border);
+}
+.auth-indicator .auth-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+.auth-indicator.authenticated .auth-dot {
+  background: #4a4a4a;
+}
+/* Sign-in prompt on arrange button */
+.regen-btn.needs-auth {
+  position: relative;
+}
+.regen-btn.needs-auth::after {
+  content: 'sign in for AI';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+/* Loading state on timeline */
+.timeline-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(250,250,250,0.85);
+  z-index: 100;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+@keyframes pulse-dots {
+  0%, 80%, 100% { opacity: 0.3; }
+  40% { opacity: 1; }
+}
+.timeline-loading span {
+  animation: pulse-dots 1.4s infinite;
+}
+.timeline-loading span:nth-child(2) { animation-delay: 0.2s; }
+.timeline-loading span:nth-child(3) { animation-delay: 0.4s; }
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
 
 :root {

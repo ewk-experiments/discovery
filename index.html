@@ -10,6 +10,22 @@
 </head>
 <body>
 
+  <!-- GitHub OAuth Login Overlay -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-container">
+      <div class="login-title">DISCOVERY</div>
+      <div class="login-subtitle">micro-sampling workstation</div>
+      <button class="login-github-btn" id="loginGithubBtn">
+        <svg class="github-mark" width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        Sign in with GitHub
+      </button>
+      <div class="login-note">Enables intelligent arrangement via GitHub Copilot</div>
+      <button class="login-skip" id="loginSkipBtn">Continue without signing in</button>
+    </div>
+  </div>
+
   <!-- Portrait orientation overlay -->
   <div class="portrait-overlay">
     <div class="rotate-prompt">
@@ -1273,6 +1289,177 @@
     // --- Add button wires to upload ---
     document.querySelector('.panel-action').addEventListener('click', () => fileInput.click());
 
+    // =========================================================================
+    // GitHub OAuth & Intelligent Arrangement
+    // =========================================================================
+
+    // ── GitHub OAuth ──────────────────────────────────────────────────────────
+
+    const GITHUB_CLIENT_ID = 'PLACEHOLDER_CLIENT_ID'; // TODO: Replace with your GitHub OAuth App client_id
+    const AUTH_CALLBACK_URL = `${API_BASE}/auth/callback`;
+
+    function getGitHubToken() {
+      return sessionStorage.getItem('github_token');
+    }
+
+    function isAuthenticated() {
+      return !!getGitHubToken();
+    }
+
+    function setGitHubToken(token) {
+      sessionStorage.setItem('github_token', token);
+      updateAuthUI();
+    }
+
+    function clearGitHubToken() {
+      sessionStorage.removeItem('github_token');
+      updateAuthUI();
+    }
+
+    // Check URL for OAuth callback token
+    function checkOAuthCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      if (token) {
+        setGitHubToken(token);
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+        return true;
+      }
+      return false;
+    }
+
+    function startGitHubOAuth() {
+      // Redirect to backend auth endpoint which handles the OAuth flow
+      const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname);
+      window.location.href = `${API_BASE}/auth/github?redirect_uri=${redirectUri}`;
+    }
+
+    // ── Login overlay ─────────────────────────────────────────────────────────
+
+    const loginOverlay = document.getElementById('loginOverlay');
+    const loginGithubBtn = document.getElementById('loginGithubBtn');
+    const loginSkipBtn = document.getElementById('loginSkipBtn');
+
+    function dismissLoginOverlay() {
+      loginOverlay.classList.add('hidden');
+      setTimeout(() => { loginOverlay.style.display = 'none'; }, 600);
+    }
+
+    // Check if returning from OAuth
+    const wasCallback = checkOAuthCallback();
+    if (wasCallback || isAuthenticated()) {
+      dismissLoginOverlay();
+    }
+
+    loginGithubBtn.addEventListener('click', startGitHubOAuth);
+    loginSkipBtn.addEventListener('click', dismissLoginOverlay);
+
+    // ── Auth UI state ─────────────────────────────────────────────────────────
+
+    // Add auth indicator to header
+    const authIndicator = document.createElement('div');
+    authIndicator.className = 'auth-indicator';
+    authIndicator.innerHTML = '<span class="auth-dot"></span><span class="auth-label">signed out</span>';
+    authIndicator.addEventListener('click', () => {
+      if (isAuthenticated()) {
+        if (confirm('Sign out of GitHub?')) clearGitHubToken();
+      } else {
+        startGitHubOAuth();
+      }
+    });
+    document.querySelector('.header-right').prepend(authIndicator);
+
+    function updateAuthUI() {
+      const authed = isAuthenticated();
+      authIndicator.classList.toggle('authenticated', authed);
+      authIndicator.querySelector('.auth-label').textContent = authed ? 'github' : 'sign in';
+      const regenBtn = document.querySelector('.regen-btn');
+      if (regenBtn) regenBtn.classList.toggle('needs-auth', !authed);
+    }
+    updateAuthUI();
+
+    // ── Intelligent Arrangement ───────────────────────────────────────────────
+
+    async function generateIntelligentArrangement(fragmentIds, vibeParams) {
+      const token = getGitHubToken();
+      if (!token) return null;
+
+      const allFrags = realFragments.length > 0 ? realFragments : fragments;
+      const manifest = allFrags.map(f => ({
+        id: f.id || f.name,
+        name: f.name,
+        category: f.cat || f.category || 'texture',
+        duration: f.dur || f.duration || '1.0s',
+        key: f.key || '-',
+        energy: f.energy || 0.5,
+        source: sources[f.src] ? sources[f.src].name : 'Unknown',
+      }));
+
+      const res = await fetch(`${API_BASE}/arrange/intelligent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fragments: manifest,
+          vibe: vibeParams,
+          github_token: token,
+          session_id: currentSessionId,
+        }),
+      });
+      if (!res.ok) throw new Error(`Intelligent arrange failed: ${res.status}`);
+      return res.json();
+    }
+
+    // ── Patched Regenerate button ─────────────────────────────────────────────
+
+    // Remove old listener by replacing the button
+    const oldRegenBtn = document.querySelector('.regen-btn');
+    const newRegenBtn = oldRegenBtn.cloneNode(true);
+    oldRegenBtn.parentNode.replaceChild(newRegenBtn, oldRegenBtn);
+    updateAuthUI(); // re-apply needs-auth class
+
+    newRegenBtn.addEventListener('click', async () => {
+      const vibeParams = {};
+      document.querySelectorAll('.vibe-control[data-param]').forEach(c => {
+        vibeParams[c.dataset.param] = parseFloat(c.dataset.value);
+      });
+      const fragIds = (realFragments.length > 0 ? realFragments : fragments).map(f => f.id || f.name);
+
+      // Show loading
+      const timelineArea = document.querySelector('.timeline-tracks');
+      const loadingEl = document.createElement('div');
+      loadingEl.className = 'timeline-loading';
+      loadingEl.innerHTML = 'ARRANGING<span>.</span><span>.</span><span>.</span>';
+      timelineArea.style.position = 'relative';
+      timelineArea.appendChild(loadingEl);
+
+      try {
+        let arrangement;
+        if (isAuthenticated()) {
+          // Try intelligent arrangement first
+          try {
+            arrangement = await generateIntelligentArrangement(fragIds, vibeParams);
+          } catch (e) {
+            console.warn('Intelligent arrange failed, falling back to algorithmic:', e);
+          }
+        }
+
+        // Fall back to algorithmic
+        if (!arrangement && API_BASE && currentSessionId) {
+          arrangement = await generateArrangement(fragIds, vibeParams);
+        }
+
+        if (arrangement) renderArrangement(arrangement);
+      } catch (e) {
+        console.error('Regenerate failed:', e);
+      } finally {
+        loadingEl.remove();
+      }
+    });
+
+    // =========================================================================
+    // End GitHub OAuth & Intelligent Arrangement
+    // =========================================================================
   </script>
 
 </body>

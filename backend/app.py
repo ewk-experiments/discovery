@@ -6,8 +6,17 @@ import modal
 import json
 import uuid
 import os
+import httpx
 
 app = modal.App("discovery-backend")
+
+volume = modal.Volume.from_name("discovery-fragments", create_if_missing=True)
+
+# GitHub OAuth App credentials
+# TODO: Create a GitHub OAuth App at https://github.com/settings/developers
+# Set these as Modal secrets or environment variables
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "PLACEHOLDER_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "PLACEHOLDER_CLIENT_SECRET")
 
 volume = modal.Volume.from_name("discovery-fragments", create_if_missing=True)
 
@@ -37,6 +46,7 @@ cpu_image = (
         "soundfile>=0.12.0",
         "pydub>=0.25.1",
         "fastapi[standard]",
+        "httpx>=0.27.0",
     )
 )
 
@@ -483,5 +493,213 @@ def web():
             media_type=media_type,
             headers={"Content-Disposition": f"attachment; filename=discovery_export.{ext}"},
         )
+
+    # ── GitHub OAuth ──────────────────────────────────────────────────────
+
+    @api.get("/auth/github")
+    async def auth_github(redirect_uri: str = "https://discovery.ewklabs.xyz"):
+        """Redirect user to GitHub OAuth authorization page."""
+        state = str(uuid.uuid4())
+        # The callback URL is this backend's /auth/callback
+        callback = f"https://heyitskim-ai--discovery-backend-web.modal.run/auth/callback"
+        params = (
+            f"?client_id={GITHUB_CLIENT_ID}"
+            f"&redirect_uri={callback}"
+            f"&scope=read:user"
+            f"&state={state}:{redirect_uri}"
+        )
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"https://github.com/login/oauth/authorize{params}")
+
+    @api.get("/auth/callback")
+    async def auth_callback(code: str, state: str = ""):
+        """Exchange OAuth code for access token and redirect back to frontend."""
+        from fastapi.responses import RedirectResponse
+        import httpx as hx
+
+        # Extract redirect_uri from state
+        parts = state.split(":", 1)
+        redirect_uri = parts[1] if len(parts) > 1 else "https://discovery.ewklabs.xyz"
+
+        # Exchange code for token
+        async with hx.AsyncClient() as client:
+            resp = await client.post(
+                "https://github.com/login/oauth/access_token",
+                json={
+                    "client_id": GITHUB_CLIENT_ID,
+                    "client_secret": GITHUB_CLIENT_SECRET,
+                    "code": code,
+                },
+                headers={"Accept": "application/json"},
+            )
+            data = resp.json()
+
+        token = data.get("access_token", "")
+        if not token:
+            return JSONResponse(status_code=400, content={"error": "OAuth failed", "details": data})
+
+        # Redirect back to frontend with token
+        separator = "&" if "?" in redirect_uri else "?"
+        return RedirectResponse(f"{redirect_uri}{separator}token={token}")
+
+    # ── Intelligent Arrangement (Opus 4.6 via GitHub Copilot) ──────────
+
+    @api.post("/arrange/intelligent")
+    async def arrange_intelligent(request: Request):
+        body = await request.json()
+        github_token = body.get("github_token")
+        fragments_manifest = body.get("fragments", [])
+        vibe = body.get("vibe", {})
+        session_id = body.get("session_id")
+
+        if not github_token:
+            return JSONResponse(status_code=401, content={"error": "GitHub token required"})
+
+        if not fragments_manifest:
+            return JSONResponse(status_code=400, content={"error": "No fragments provided"})
+
+        # Build the arrangement prompt
+        fragment_desc = "\n".join(
+            f"  - {f['id']}: {f['name']} | {f['category']} | dur={f['duration']} | key={f['key']} | energy={f.get('energy', '?')} | source=\"{f.get('source', '?')}\""
+            for f in fragments_manifest
+        )
+
+        vibe_desc = "\n".join(f"  - {k}: {v}" for k, v in vibe.items())
+
+        prompt = f"""You are a micro-sampling arrangement engine inspired by Todd Edwards and Daft Punk's "Face to Face" production technique.
+
+AVAILABLE FRAGMENTS:
+{fragment_desc}
+
+VIBE PARAMETERS:
+{vibe_desc}
+
+PARAMETER MEANINGS:
+- choppiness (0-100): How short/frequent the cuts are. High = rapid stutter edits. Low = longer phrases.
+- density (0-100): How many fragments play simultaneously. High = layered, dense. Low = sparse, minimal.
+- harmonic (0-100): How far from the key center fragments can stray. Low = strict harmonic matching. High = adventurous.
+- tempo: BPM for the arrangement.
+- groove (0-100): How tightly cuts align to the beat grid. High = perfectly quantized. Low = loose, human feel.
+- swing (0-100): Rhythmic offset on every other beat. Creates shuffle/bounce.
+- attack (0-100): How abruptly fragments enter. High = hard cuts. Low = faded in.
+- decay (0-100): How fragments fade out. High = abrupt end. Low = long tail.
+- warmth (0-100): Favor warmer/fuller frequency fragments. High = warm vinyl feel. Low = crisp/digital.
+- drift (0-100): Allow gradual key/tempo wandering over time.
+
+ARRANGEMENT RULES:
+1. Create a 4-8 bar arrangement that could loop seamlessly
+2. Choose ONE fragment as the "anchor" — a recurring element that holds it together (like Todd Edwards' vocal chop in Face to Face)
+3. The anchor should appear in at least 50% of bars
+4. Ensure cuts land on the beat grid (respect groove parameter)
+5. Keep fragments in compatible harmonic space (respect harmonic parameter)
+6. Bring fragments back for motif recurrence — repetition builds familiarity
+7. Vary density — build up and break down within the arrangement
+8. Percussion fragments form the rhythmic backbone
+9. Apply choppiness: high choppiness = more fragments with shorter durations, low = fewer with longer durations
+10. Think like you're producing a French house / filtered disco track
+
+SCORING (optimize for):
+- groove_alignment: Do cuts land on the beat grid?
+- harmonic_consistency: Are fragments in compatible keys?
+- anchor_ratio: Does the anchor fragment recur enough?
+- motif_recurrence: Do fragments repeat to build familiarity?
+
+OUTPUT FORMAT (JSON only, no markdown):
+{{
+  "arrangement": [
+    {{"fragment_id": "...", "track": "vocal|chord|texture|percussion|bass", "start_time": 0.0, "duration": 0.8, "repeat_count": 1}}
+  ],
+  "anchor_fragment_id": "...",
+  "total_bars": 8,
+  "scores": {{
+    "groove_alignment": 0.0-1.0,
+    "harmonic_consistency": 0.0-1.0,
+    "anchor_ratio": 0.0-1.0,
+    "motif_recurrence": 0.0-1.0
+  }}
+}}
+
+Respond with ONLY the JSON object. No explanation, no markdown fences."""
+
+        # Call GitHub Copilot API with Opus 4.6
+        import httpx as hx
+        async with hx.AsyncClient(timeout=60.0) as client:
+            # First get a Copilot token from the GitHub token
+            copilot_token_resp = await client.get(
+                "https://api.github.com/copilot_internal/v2/token",
+                headers={
+                    "Authorization": f"token {github_token}",
+                    "Accept": "application/json",
+                },
+            )
+
+            if copilot_token_resp.status_code == 200:
+                copilot_token_data = copilot_token_resp.json()
+                copilot_token = copilot_token_data.get("token", github_token)
+                api_url = copilot_token_data.get("endpoints", {}).get("api", "https://api.githubcopilot.com")
+            else:
+                # Fallback: try using the GitHub token directly with the models API
+                copilot_token = github_token
+                api_url = "https://models.inference.ai.azure.com"
+
+            resp = await client.post(
+                f"{api_url}/chat/completions",
+                json={
+                    "model": "claude-opus-4.6",
+                    "messages": [
+                        {"role": "system", "content": "You are a music arrangement engine. Output only valid JSON."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 4096,
+                },
+                headers={
+                    "Authorization": f"Bearer {copilot_token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+            )
+
+        if resp.status_code != 200:
+            return JSONResponse(
+                status_code=502,
+                content={"error": "Copilot API error", "status": resp.status_code, "detail": resp.text[:500]},
+            )
+
+        # Parse the response
+        try:
+            completion = resp.json()
+            content = completion["choices"][0]["message"]["content"]
+            # Strip markdown fences if present
+            content = content.strip()
+            if content.startswith("```"):
+                content = content.split("\n", 1)[1]
+                if content.endswith("```"):
+                    content = content[:-3]
+                content = content.strip()
+            result = json.loads(content)
+        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            return JSONResponse(
+                status_code=502,
+                content={"error": "Failed to parse Opus response", "detail": str(e), "raw": content[:1000] if 'content' in dir() else ""},
+            )
+
+        # Validate fragment IDs
+        valid_ids = {f["id"] for f in fragments_manifest}
+        arrangement = result.get("arrangement", [])
+        arrangement = [a for a in arrangement if a.get("fragment_id") in valid_ids]
+
+        # Build response matching frontend expectations
+        tempo = vibe.get("tempo", 128)
+        beat_duration = 60.0 / tempo
+
+        return JSONResponse(content={
+            "session_id": session_id,
+            "arrangement": arrangement,
+            "anchor_fragment_id": result.get("anchor_fragment_id"),
+            "score": result.get("scores", {}),
+            "total_bars": result.get("total_bars", 8),
+            "intelligent": True,
+        })
 
     return api

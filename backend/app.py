@@ -538,9 +538,9 @@ def web():
         if not token:
             return JSONResponse(status_code=400, content={"error": "OAuth failed", "details": data})
 
-        # Redirect back to frontend with token (force HTTPS)
-        if redirect_uri.startswith("http://"):
-            redirect_uri = redirect_uri.replace("http://", "https://", 1)
+        # Redirect back to frontend with token (use HTTP until HTTPS cert is ready)
+        if redirect_uri.startswith("https://discovery.ewklabs"):
+            redirect_uri = redirect_uri.replace("https://", "http://", 1)
         separator = "&" if "?" in redirect_uri else "?"
         return RedirectResponse(f"{redirect_uri}{separator}token={token}")
 

@@ -40,14 +40,14 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Engineering grid background */
+/* Engineering grid background — subtle */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(var(--bg-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px);
   background-size: 20px 20px;
   pointer-events: none;
   z-index: 0;
@@ -59,8 +59,8 @@ body::after {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,0,0,0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.09) 1px, transparent 1px);
+    linear-gradient(rgba(0,0,0,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.045) 1px, transparent 1px);
   background-size: 100px 100px;
   pointer-events: none;
   z-index: 0;
@@ -126,10 +126,11 @@ body::after {
 .workspace-layout {
   display: grid;
   grid-template-columns: 220px 1fr 240px;
-  grid-template-rows: 44px 1fr 48px;
+  grid-template-rows: 44px 1fr 80px 48px;
   grid-template-areas:
     "header header header"
     "source timeline right"
+    "vibe vibe vibe"
     "transport transport transport";
   height: 100vh;
   position: relative;
@@ -873,7 +874,7 @@ body::after {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 50%;
+  border-radius: 0;
   background: transparent;
   color: var(--text-muted);
   font-size: 7px;
@@ -885,26 +886,36 @@ body::after {
 .frag-play:hover {
   border-color: var(--ink);
   color: var(--text);
-  background: rgba(0,0,0,0.04);
 }
 
-/* ---- Vibe Mixer ---- */
+/* ---- Vibe Mixer — Full width bottom row ---- */
 .vibe-mixer {
+  grid-area: vibe;
   border-top: 1px solid var(--border);
-  padding-bottom: 10px;
+  padding: 6px 24px;
+  flex-shrink: 0;
+  background: rgba(250,250,250,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.vibe-mixer .panel-header {
+  padding: 0;
   flex-shrink: 0;
 }
 
 .vibe-mixer .panel-title::before {
-  content: 'SEC. B — ';
-  color: var(--text-faint);
+  content: '';
 }
 
 .vibe-controls {
-  padding: 4px 10px 0;
+  flex: 1;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 2px;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
   text-align: center;
 }
 
@@ -912,7 +923,7 @@ body::after {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .vibe-control label {
@@ -941,8 +952,8 @@ body::after {
 
 /* Circular knob container */
 .knob-container {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   position: relative;
   cursor: pointer;
 }
@@ -1035,44 +1046,6 @@ body::after {
   background: var(--ink);
   border-color: var(--ink);
   color: #fafafa;
-}
-
-/* Record button — circular emphasis */
-.transport-btn[title="Record"] {
-  border-radius: 50%;
-}
-
-.transport-btn[title="Record"]:hover {
-  border-color: var(--ink);
-}
-
-.transport-btn[title="Record"].active {
-  background: var(--ink);
-  color: #fafafa;
-  border-color: var(--ink);
-}
-
-/* Source card waveform — circular variant */
-.source-card .source-waveform {
-  border-bottom: none;
-  position: relative;
-}
-
-.source-card .source-waveform::after {
-  content: '';
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-}
-
-.source-card.active .source-waveform::after {
-  background: var(--ink);
-  border-color: var(--ink);
 }
 
 .transport-time {

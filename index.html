@@ -120,70 +120,126 @@
       <div class="fragment-browser">
         <div class="fragment-list" id="fragmentList"></div>
       </div>
+    </aside>
 
-      <div class="vibe-mixer">
-        <div class="panel-header">
-          <span class="panel-title">Vibe Mixer</span>
+    <!-- Vibe Mixer — Full width -->
+    <div class="vibe-mixer">
+      <div class="panel-header">
+        <span class="panel-title">Vibe Mixer</span>
+      </div>
+      <div class="vibe-controls" id="vibeControls">
+        <div class="vibe-control" data-param="choppiness" data-min="0" data-max="100" data-value="72">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="31.7" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
+          </div>
+          <span class="vibe-value mono">72%</span>
+          <span class="vibe-label">Chop</span>
         </div>
-        <div class="vibe-controls" id="vibeControls">
-          <div class="vibe-control" data-param="choppiness" data-min="0" data-max="100" data-value="72">
-            <div class="knob-container">
-              <svg viewBox="0 0 44 44" width="44" height="44">
-                <circle class="knob-ring" cx="22" cy="22" r="18"/>
-                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="31.7" transform="rotate(-135 22 22)"/>
-                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
-              </svg>
-            </div>
-            <span class="vibe-value mono">72%</span>
-            <span class="vibe-label">Chop</span>
+        <div class="vibe-control" data-param="density" data-min="0" data-max="100" data-value="58">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="47.5" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
           </div>
-          <div class="vibe-control" data-param="density" data-min="0" data-max="100" data-value="58">
-            <div class="knob-container">
-              <svg viewBox="0 0 44 44" width="44" height="44">
-                <circle class="knob-ring" cx="22" cy="22" r="18"/>
-                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="47.5" transform="rotate(-135 22 22)"/>
-                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
-              </svg>
-            </div>
-            <span class="vibe-value mono">58%</span>
-            <span class="vibe-label">Density</span>
+          <span class="vibe-value mono">58%</span>
+          <span class="vibe-label">Density</span>
+        </div>
+        <div class="vibe-control" data-param="harmonic" data-min="0" data-max="100" data-value="40">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="67.9" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
           </div>
-          <div class="vibe-control" data-param="harmonic" data-min="0" data-max="100" data-value="40">
-            <div class="knob-container">
-              <svg viewBox="0 0 44 44" width="44" height="44">
-                <circle class="knob-ring" cx="22" cy="22" r="18"/>
-                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="67.9" transform="rotate(-135 22 22)"/>
-                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
-              </svg>
-            </div>
-            <span class="vibe-value mono">40%</span>
-            <span class="vibe-label">Harmonic</span>
+          <span class="vibe-value mono">40%</span>
+          <span class="vibe-label">Harmonic</span>
+        </div>
+        <div class="vibe-control" data-param="tempo" data-min="60" data-max="180" data-value="128">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="31.7" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
           </div>
-          <div class="vibe-control" data-param="tempo" data-min="60" data-max="180" data-value="128">
-            <div class="knob-container">
-              <svg viewBox="0 0 44 44" width="44" height="44">
-                <circle class="knob-ring" cx="22" cy="22" r="18"/>
-                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="31.7" transform="rotate(-135 22 22)"/>
-                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
-              </svg>
-            </div>
-            <span class="vibe-value mono">128</span>
-            <span class="vibe-label">Tempo</span>
+          <span class="vibe-value mono">128</span>
+          <span class="vibe-label">Tempo</span>
+        </div>
+        <div class="vibe-control" data-param="groove" data-min="0" data-max="100" data-value="85">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="17" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
           </div>
-          <div class="vibe-control" data-param="groove" data-min="0" data-max="100" data-value="85">
-            <div class="knob-container">
-              <svg viewBox="0 0 44 44" width="44" height="44">
-                <circle class="knob-ring" cx="22" cy="22" r="18"/>
-                <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="17" transform="rotate(-135 22 22)"/>
-                <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
-              </svg>
-            </div>
-            <span class="vibe-value mono">85%</span>
-            <span class="vibe-label">Groove</span>
+          <span class="vibe-value mono">85%</span>
+          <span class="vibe-label">Groove</span>
+        </div>
+        <div class="vibe-control" data-param="swing" data-min="0" data-max="100" data-value="30">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="79.2" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
           </div>
+          <span class="vibe-value mono">30%</span>
+          <span class="vibe-label">Swing</span>
+        </div>
+        <div class="vibe-control" data-param="attack" data-min="0" data-max="100" data-value="45">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="62.2" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
+          </div>
+          <span class="vibe-value mono">45%</span>
+          <span class="vibe-label">Attack</span>
+        </div>
+        <div class="vibe-control" data-param="decay" data-min="0" data-max="100" data-value="60">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="45.2" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
+          </div>
+          <span class="vibe-value mono">60%</span>
+          <span class="vibe-label">Decay</span>
+        </div>
+        <div class="vibe-control" data-param="warmth" data-min="0" data-max="100" data-value="55">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="50.9" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
+          </div>
+          <span class="vibe-value mono">55%</span>
+          <span class="vibe-label">Warmth</span>
+        </div>
+        <div class="vibe-control" data-param="drift" data-min="0" data-max="100" data-value="20">
+          <div class="knob-container">
+            <svg viewBox="0 0 44 44" width="40" height="40">
+              <circle class="knob-ring" cx="22" cy="22" r="18"/>
+              <circle class="knob-track" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="90.5" transform="rotate(-135 22 22)"/>
+              <circle class="knob-dot" cx="22" cy="6" r="2.5"/>
+            </svg>
+          </div>
+          <span class="vibe-value mono">20%</span>
+          <span class="vibe-label">Drift</span>
         </div>
       </div>
-    </aside>
+    </div>
 
     <!-- Transport -->
     <div class="transport-bar">
@@ -200,9 +256,6 @@
         </button>
         <button class="transport-btn play-btn" title="Play" id="playBtn">
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,5 19,12 8,19"/></svg>
-        </button>
-        <button class="transport-btn" title="Record" id="recBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="6"/></svg>
         </button>
         <button class="transport-btn" title="Next">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2zM6 18l8.5-6L6 6z"/></svg>
@@ -441,7 +494,7 @@
 
     // --- Knob controls ---
     const ARC_TOTAL = 270; // degrees of travel
-    const CIRCUMFERENCE = 2 * Math.PI * 18; // r=18
+    const CIRCUMFERENCE = 2 * Math.PI * 18; // r=18 in viewBox
 
     function updateKnob(control, value) {
       const min = parseFloat(control.dataset.min);

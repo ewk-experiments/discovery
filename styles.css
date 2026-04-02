@@ -388,9 +388,11 @@ body::after {
   grid-area: timeline;
   display: flex;
   flex-direction: column;
-  background: transparent;
+  background: var(--bg);
   overflow: hidden;
   position: relative;
+  /* Cover the global grid so only ruler-aligned lines show */
+  z-index: 1;
 }
 
 .timeline-toolbar {
@@ -516,6 +518,7 @@ body::after {
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+  /* Grid lines aligned to ruler marks via JS */
 }
 
 .track {
@@ -628,6 +631,14 @@ body::after {
 .track-content {
   flex: 1;
   position: relative;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(0,0,0,0.04) 0px,
+    rgba(0,0,0,0.04) 1px,
+    transparent 1px,
+    transparent 100%
+  );
+  background-size: 6.25% 100%;
 }
 
 /* Sample blocks — wireframe style */

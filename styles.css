@@ -500,7 +500,7 @@ body::after {
 
 .track {
   display: flex;
-  height: 64px;
+  height: 72px;
   border-bottom: 1px solid var(--line-subtle);
   transition: background var(--transition);
 }
@@ -1080,192 +1080,36 @@ input[type="range"]::-moz-range-thumb {
   text-transform: uppercase;
 }
 
-/* =========================================
-   Mobile Landscape — Simplified Layout
-   ========================================= */
-
-/* Landscape phones and small tablets */
+/* Mobile — Coming Soon */
 @media (max-width: 1024px) and (orientation: landscape) {
-  .workspace-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: 40px 1fr 44px;
-    grid-template-areas:
-      "header"
-      "timeline"
-      "transport";
-  }
-
-  /* Hide side panels on mobile */
-  .source-rack,
-  .right-panel {
-    display: none;
-  }
-
-  /* Mobile header — compact */
-  .workspace-header {
-    padding: 0 12px;
-  }
-
-  .header-divider,
-  .project-name {
-    display: none;
-  }
-
-  .workspace-logo {
-    font-size: 12px;
-  }
-
-  .header-center {
-    gap: 8px;
-  }
-
-  .project-meta {
-    font-size: 9px;
-  }
-
-  .header-btn {
-    padding: 3px 10px;
-    font-size: 9px;
-  }
-
-  /* Mobile toolbar — simplified */
-  .timeline-toolbar {
-    padding: 4px 10px;
-    gap: 4px;
-    overflow-x: auto;
-  }
-
-  .regen-btn {
-    font-size: 8px;
-    padding: 3px 10px;
-    white-space: nowrap;
-  }
-
-  /* Tracks */
-  .track {
-    height: 52px;
-  }
-
-  .track-header {
-    width: 44px;
-    min-width: 44px;
-  }
-
-  .track-label {
-    font-size: 7px;
-  }
-
-  .track-btn {
-    width: 14px;
-    height: 12px;
-    font-size: 7px;
-  }
-
-  .block-label {
-    font-size: 6px;
-  }
-
-  /* Timeline ruler */
-  .timeline-ruler {
-    height: 18px;
-    padding-left: 44px;
-  }
-
-  .ruler-mark span {
-    font-size: 7px;
-  }
-
-  /* Transport — compact */
-  .transport-bar {
-    padding: 0 10px;
-    gap: 10px;
-  }
-
-  .transport-btn {
-    width: 26px;
-    height: 26px;
-  }
-
-  .transport-btn svg {
-    width: 12px;
-    height: 12px;
-  }
-
-  .transport-btn.play-btn {
-    width: 30px;
-    height: 30px;
-  }
-
-  .transport-time {
-    font-size: 12px;
-    min-width: 80px;
-  }
-
-  .transport-bpm {
-    font-size: 8px;
-  }
-
-  .meter-label {
-    font-size: 7px;
-  }
-
-  /* Playhead adjust for narrower track header */
-  .playhead {
-    left: 44px;
-  }
+  .workspace-layout { display: none !important; }
+  .mobile-notice { display: flex !important; }
 }
 
-/* Very small landscape (phones) */
-@media (max-height: 420px) and (orientation: landscape) {
-  .workspace-layout {
-    grid-template-rows: 36px 1fr 40px;
-  }
+.mobile-notice {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--mono);
+}
 
-  .track {
-    height: 44px;
-  }
+.mobile-notice span {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
 
-  .track-header {
-    width: 40px;
-    min-width: 40px;
-  }
-
-  .track-controls {
-    display: none;
-  }
-
-  .timeline-toolbar {
-    padding: 3px 8px;
-  }
-
-  .tool-btn {
-    width: 24px;
-    height: 22px;
-  }
-
-  .toolbar-sep {
-    height: 12px;
-  }
-
-  .sample-block {
-    top: 4px;
-    height: calc(100% - 8px);
-  }
-
-  .block-label {
-    display: none;
-  }
-
-  .timeline-ruler {
-    height: 16px;
-    padding-left: 40px;
-  }
-
-  .playhead {
-    left: 40px;
-  }
-
-  .transport-meter {
-    display: none;
-  }
+.mobile-notice .logo-small {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+  font-weight: 300;
 }

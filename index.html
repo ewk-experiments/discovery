@@ -23,6 +23,13 @@
     </div>
   </div>
 
+  <!-- Mobile coming soon -->
+  <div class="mobile-notice">
+    <span class="logo-small">discovery</span>
+    <span>desktop experience only</span>
+    <span>mobile coming soon</span>
+  </div>
+
   <div class="workspace-layout">
 
     <!-- Header -->
@@ -359,14 +366,16 @@
       ctx.strokeStyle = `rgba(30, 30, 30, ${style.opacity})`;
       ctx.lineWidth = style.weight;
       ctx.setLineDash(style.dash);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
       ctx.beginPath();
 
-      const points = Math.max(Math.floor(w / 1.5), 20);
+      const points = Math.max(Math.floor(w / 3), 12);
       for (let i = 0; i <= points; i++) {
         const x = (i / points) * w;
-        const s = seed + i * 0.15;
-        const amp = Math.sin(s * 1.2) * 0.35 + Math.sin(s * 2.7) * 0.2 + Math.sin(s * 0.4) * 0.15;
-        const y = mid + amp * h * 0.7;
+        const s = seed + i * 0.2;
+        const amp = Math.sin(s * 0.8) * 0.3 + Math.sin(s * 1.6) * 0.12;
+        const y = mid + amp * h * 0.6;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }

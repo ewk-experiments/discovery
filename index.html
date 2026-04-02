@@ -476,7 +476,36 @@
 
     // --- Interactive toggles ---
     document.addEventListener('click', e => {
-      if (e.target.classList.contains('track-btn')) e.target.classList.toggle('active');
+      if (e.target.classList.contains('track-btn')) {
+        e.target.classList.toggle('active');
+        const track = e.target.closest('.track');
+        if (track) {
+          // Handle mute
+          if (e.target.classList.contains('mute')) {
+            track.classList.toggle('muted', e.target.classList.contains('active'));
+          }
+          // Handle solo
+          if (e.target.classList.contains('solo')) {
+            track.classList.toggle('soloed', e.target.classList.contains('active'));
+            // If any track is soloed, dim all non-soloed tracks
+            const allTracks = document.querySelectorAll('.track');
+            const anySoloed = document.querySelector('.track.soloed');
+            allTracks.forEach(t => {
+              if (anySoloed) {
+                if (!t.classList.contains('soloed') && !t.classList.contains('muted')) {
+                  t.style.opacity = '0.25';
+                } else if (t.classList.contains('soloed')) {
+                  t.style.opacity = '';
+                }
+              } else {
+                if (!t.classList.contains('muted')) {
+                  t.style.opacity = '';
+                }
+              }
+            });
+          }
+        }
+      }
       const card = e.target.closest('.source-card');
       if (card) {
         document.querySelectorAll('.source-card').forEach(c => c.classList.remove('active'));

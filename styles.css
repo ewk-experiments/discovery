@@ -406,7 +406,7 @@ body::after {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: var(--mono);
   font-size: 12px;
 }
@@ -416,10 +416,16 @@ body::after {
   border-color: var(--border);
 }
 
+.tool-btn:active {
+  background: var(--ink);
+  color: #fafafa;
+  border-color: var(--ink);
+}
+
 .tool-btn.active {
   border-color: var(--border-strong);
   color: var(--text);
-  background: rgba(0,0,0,0.03);
+  background: rgba(0,0,0,0.04);
 }
 
 .tool-btn.text-btn {
@@ -534,8 +540,8 @@ body::after {
 }
 
 .track-btn {
-  width: 16px;
-  height: 14px;
+  width: 18px;
+  height: 16px;
   font-size: 8px;
   font-weight: 500;
   font-family: var(--mono);
@@ -544,7 +550,7 @@ body::after {
   cursor: pointer;
   color: var(--text-faint);
   background: transparent;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: 0.02em;
 }
 
@@ -560,6 +566,29 @@ body::after {
   background: var(--text-secondary);
   border-color: var(--text-secondary);
   color: #fafafa;
+}
+
+/* Track state: muted — dim the entire track row */
+.track.muted {
+  opacity: 0.25;
+}
+
+.track.muted .track-header {
+  opacity: 1;
+}
+
+.track.muted .track-content {
+  pointer-events: none;
+}
+
+/* Track state: soloed — emphasize this track */
+.track.soloed .track-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.track.soloed .track-header {
+  border-right: 2px solid var(--ink);
 }
 
 .track-content {
@@ -922,8 +951,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .transport-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -932,7 +961,7 @@ input[type="range"]::-moz-range-thumb {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .transport-btn svg {
@@ -941,18 +970,24 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .transport-btn:hover {
-  border-color: var(--border-strong);
+  border-color: var(--ink);
   color: var(--text);
 }
 
+.transport-btn:active {
+  background: var(--ink);
+  color: #fafafa;
+}
+
 .transport-btn.play-btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  border-width: 2px;
   border-color: var(--border-strong);
 }
 
 .transport-btn.play-btn:hover {
-  background: rgba(0,0,0,0.03);
+  border-color: var(--ink);
   color: var(--text);
 }
 

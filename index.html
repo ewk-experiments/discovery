@@ -89,7 +89,7 @@
       <div class="source-list" id="sourceList"></div>
       <div class="upload-zone" id="uploadZone">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"/></svg>
-        <span>Drop audio files</span>
+        <span>Drop audio or video files</span>
       </div>
     </aside>
 
@@ -783,13 +783,13 @@
     // --- Upload Zone ---
 
     const uploadZone = document.getElementById('uploadZone');
-    const ACCEPTED_AUDIO = ['.mp3','.wav','.flac','.aac','.ogg','.m4a'];
-    const ACCEPTED_MIME = ['audio/mpeg','audio/wav','audio/x-wav','audio/flac','audio/aac','audio/ogg','audio/mp4','audio/x-m4a'];
+    const ACCEPTED_AUDIO = ['.mp3','.wav','.flac','.aac','.ogg','.m4a','.mp4','.m4v','.webm'];
+    const ACCEPTED_MIME = ['audio/mpeg','audio/wav','audio/x-wav','audio/flac','audio/aac','audio/ogg','audio/mp4','audio/x-m4a','video/mp4','video/webm','video/x-m4v'];
 
     // Hidden file input
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = ACCEPTED_AUDIO.join(',');
+    fileInput.accept = ACCEPTED_AUDIO.join(',') + ',video/mp4,video/webm';
     fileInput.multiple = true;
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);

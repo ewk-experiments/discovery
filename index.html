@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discovery — AI Micro-Sampling Workstation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="landing-nav" id="nav">
+    <div class="logo">ewk<span>labs</span> / discovery</div>
+    <div class="nav-links">
+      <a href="#concept">Concept</a>
+      <a href="#philosophy">Philosophy</a>
+      <a href="workspace.html">Workspace</a>
+      <a href="library.html">Library</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <p class="hero-label mono">AI Micro-Sampling Workstation</p>
+      <h1 class="hero-title" id="heroTitle">DISCOVERY</h1>
+      <p class="hero-tagline">Decompose real recordings into fragments. Let AI arrange them into something new. Every sound is real. Every composition is original.</p>
+      <a href="workspace.html" class="hero-cta">
+        Enter the workspace
+        <span class="arrow">&rarr;</span>
+      </a>
+    </div>
+    <div class="hero-scroll-hint">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- Waveform strip -->
+  <div class="waveform-strip">
+    <canvas id="heroWaveform"></canvas>
+  </div>
+
+  <!-- Concept -->
+  <section class="section" id="concept">
+    <div class="reveal">
+      <p class="section-label">The Concept</p>
+      <h2 class="section-title">Your recordings.<br>Rearranged by AI.</h2>
+      <p class="section-subtitle">Upload your crate of tracks. Discovery slices them into micro-samples — vocal chops, chord fragments, textures, percussive hits — then arranges them into new compositions that honor the source material.</p>
+    </div>
+  </section>
+
+  <!-- Flow -->
+  <section class="flow-section" id="flow">
+    <div class="reveal">
+      <p class="section-label" style="text-align:center;">How It Works</p>
+    </div>
+    <div class="flow-container">
+      <div class="flow-node" data-delay="0">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20" stroke-linecap="round"/></svg>
+        </div>
+        <span class="flow-label">Upload</span>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" data-delay="150">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h8M4 18h12" stroke-linecap="round"/></svg>
+        </div>
+        <span class="flow-label">Decompose</span>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" data-delay="300">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <span class="flow-label">Categorize</span>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" data-delay="450">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 12l3 3 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="flow-label">Arrange</span>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node" data-delay="600">
+        <div class="flow-icon">
+          <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        </div>
+        <span class="flow-label">Compose</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Philosophy -->
+  <section class="philosophy reveal" id="philosophy">
+    <p class="philosophy-quote">Not AI-generated.<br><em>AI-arranged.</em></p>
+    <p class="philosophy-sub">Every sound comes from a real recording. The AI is a curator, not a creator.</p>
+  </section>
+
+  <!-- Inspiration -->
+  <section class="section reveal">
+    <p class="section-label">Inspiration</p>
+    <h2 class="section-title">140 samples. One masterpiece.</h2>
+    <p class="section-subtitle">Daft Punk's "Face to Face" used over 140 micro-samples woven together so seamlessly that fans spent 20 years identifying them. The final sample was cracked in 2023 — using AI. Discovery picks up where that craft left off.</p>
+  </section>
+
+  <!-- Second waveform -->
+  <div class="waveform-strip">
+    <canvas id="footerWaveform"></canvas>
+  </div>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <span class="copyright mono">2026 EWKLABS</span>
+    <div class="footer-links">
+      <a href="workspace.html">Workspace</a>
+      <a href="library.html">Library</a>
+    </div>
+  </footer>
+
+  <script>
+    // --- Nav scroll ---
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    // --- Hero char animation ---
+    const title = document.getElementById('heroTitle');
+    const text = title.textContent;
+    title.textContent = '';
+    title.style.opacity = '1';
+    title.style.transform = 'none';
+    [...text].forEach((ch, i) => {
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.textContent = ch;
+      span.style.animationDelay = `${0.5 + i * 0.06}s`;
+      title.appendChild(span);
+    });
+
+    // --- Scroll reveal ---
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('visible');
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal, .flow-node, .flow-arrow').forEach(el => observer.observe(el));
+
+    // --- Waveform drawing ---
+    function drawWaveform(canvas) {
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = rect.width, h = rect.height;
+      const mid = h / 2;
+      const bars = Math.floor(w / 3);
+
+      ctx.fillStyle = 'rgba(232, 56, 13, 0.15)';
+      for (let i = 0; i < bars; i++) {
+        const x = i * 3;
+        const amp = Math.sin(i * 0.05) * 0.3 + Math.sin(i * 0.13) * 0.2 + Math.sin(i * 0.31) * 0.15 + Math.random() * 0.1;
+        const barH = Math.abs(amp) * h * 0.8;
+        ctx.fillRect(x, mid - barH / 2, 2, barH);
+      }
+      // accent highlights
+      ctx.fillStyle = 'rgba(232, 56, 13, 0.4)';
+      for (let i = 0; i < bars; i += 7) {
+        const x = i * 3;
+        const barH = (Math.random() * 0.5 + 0.2) * h * 0.5;
+        ctx.fillRect(x, mid - barH / 2, 2, barH);
+      }
+    }
+
+    document.querySelectorAll('.waveform-strip canvas').forEach(drawWaveform);
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('.waveform-strip canvas').forEach(drawWaveform);
+    });
+  </script>
+
+</body>
+</html>

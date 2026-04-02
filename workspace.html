@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discovery — Workspace</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="workspace-layout">
+
+    <!-- Header -->
+    <header class="workspace-header">
+      <a href="index.html" class="workspace-logo">ewk<span>labs</span> / discovery</a>
+      <div class="workspace-title-bar">
+        <span class="project-name">Untitled Session</span>
+        <span class="project-meta mono">128 BPM / F minor / 4:32</span>
+      </div>
+      <div class="workspace-actions">
+        <button>Undo</button>
+        <button>Redo</button>
+        <a href="library.html"><button>Library</button></a>
+        <button class="primary">Export</button>
+      </div>
+    </header>
+
+    <!-- Source Rack -->
+    <aside class="source-rack">
+      <div class="panel-header">
+        <span class="panel-title">Source Rack</span>
+        <span class="panel-action">+ Add</span>
+      </div>
+      <div class="source-list" id="sourceList"></div>
+      <div class="upload-zone" id="uploadZone">
+        Drop audio files here<br>or click to browse
+      </div>
+    </aside>
+
+    <!-- Timeline -->
+    <main class="timeline-area">
+      <div class="timeline-toolbar">
+        <div class="tool-group">
+          <button class="active" title="Select">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+          </button>
+          <button title="Slice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/></svg>
+          </button>
+          <button title="Draw">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+          <button title="Snap to grid" class="active mono" style="font-size:0.6rem">SNAP</button>
+          <button title="Quantize" class="mono" style="font-size:0.6rem">1/16</button>
+        </div>
+        <div class="separator"></div>
+        <div class="tool-group">
+          <button title="Zoom in">+</button>
+          <button title="Zoom out">-</button>
+        </div>
+        <div style="flex:1"></div>
+        <button class="mono" style="font-size:0.6rem;color:var(--accent)">REGENERATE SECTION</button>
+      </div>
+
+      <div class="timeline-ruler">
+        <div class="ruler-marks" id="rulerMarks"></div>
+      </div>
+
+      <div class="timeline-tracks" id="timelineTracks">
+        <div class="playhead" id="playhead"></div>
+      </div>
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="right-panel">
+      <div class="panel-header">
+        <span class="panel-title">Fragments</span>
+        <span class="panel-action" style="font-size:0.6rem;color:var(--text-muted)" id="fragCount">24 fragments</span>
+      </div>
+      <div class="fragment-tabs">
+        <button class="fragment-tab active" data-cat="all">All</button>
+        <button class="fragment-tab" data-cat="vocal">Vocals</button>
+        <button class="fragment-tab" data-cat="chord">Chords</button>
+        <button class="fragment-tab" data-cat="texture">Textures</button>
+        <button class="fragment-tab" data-cat="perc">Perc</button>
+        <button class="fragment-tab" data-cat="oneshot">One-Shots</button>
+      </div>
+      <div class="fragment-browser">
+        <div class="fragment-list" id="fragmentList"></div>
+      </div>
+
+      <div class="vibe-mixer">
+        <div class="panel-header">
+          <span class="panel-title">Vibe Mixer</span>
+        </div>
+        <div class="vibe-controls">
+          <div class="vibe-control">
+            <label><span class="vibe-label">Choppiness</span><span class="vibe-value mono">72%</span></label>
+            <input type="range" min="0" max="100" value="72" data-param="choppiness">
+          </div>
+          <div class="vibe-control">
+            <label><span class="vibe-label">Density</span><span class="vibe-value mono">58%</span></label>
+            <input type="range" min="0" max="100" value="58" data-param="density">
+          </div>
+          <div class="vibe-control">
+            <label><span class="vibe-label">Harmonic Range</span><span class="vibe-value mono">40%</span></label>
+            <input type="range" min="0" max="100" value="40" data-param="harmonic">
+          </div>
+          <div class="vibe-control">
+            <label><span class="vibe-label">Tempo</span><span class="vibe-value mono">128</span></label>
+            <input type="range" min="60" max="180" value="128" data-param="tempo">
+          </div>
+          <div class="vibe-control">
+            <label><span class="vibe-label">Groove Tightness</span><span class="vibe-value mono">85%</span></label>
+            <input type="range" min="0" max="100" value="85" data-param="groove">
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Transport -->
+    <div class="transport-bar">
+      <div class="transport-meter">
+        <span class="meter-label mono">L</span>
+        <div class="meter-bar"><div class="meter-fill" style="width:65%"></div></div>
+      </div>
+      <div class="transport-controls">
+        <button class="transport-btn" title="Previous">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button class="transport-btn" title="Stop" id="stopBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+        </button>
+        <button class="transport-btn play-btn" title="Play" id="playBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,5 19,12 8,19"/></svg>
+        </button>
+        <button class="transport-btn" title="Record" id="recBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg>
+        </button>
+        <button class="transport-btn" title="Next">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2zM6 18l8.5-6L6 6z"/></svg>
+        </button>
+      </div>
+      <div class="transport-time mono" id="transportTime">00:00.000</div>
+      <div class="transport-bpm mono">BPM <span id="bpmDisplay">128</span></div>
+      <div class="transport-meter">
+        <span class="meter-label mono">R</span>
+        <div class="meter-bar"><div class="meter-fill" style="width:58%"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- Data ---
+    const sources = [
+      { name: 'Todd Edwards — Saved My Life', bpm: 126, key: 'Eb maj', duration: '4:18', fragments: 8 },
+      { name: 'Romanthony — Hold On', bpm: 122, key: 'F min', duration: '5:02', fragments: 6 },
+      { name: 'Barry Manilow — Who Needs to Dream', bpm: 118, key: 'Ab maj', duration: '3:45', fragments: 5 },
+      { name: 'Sister Sledge — Il Macquillage Lady', bpm: 128, key: 'Bb min', duration: '6:11', fragments: 5 },
+    ];
+
+    const fragments = [
+      { name: 'vox_savedmylife_01', cat: 'vocal', dur: '0.8s', key: 'Eb', src: 0 },
+      { name: 'vox_savedmylife_02', cat: 'vocal', dur: '1.2s', key: 'Eb', src: 0 },
+      { name: 'vox_holdon_01', cat: 'vocal', dur: '0.6s', key: 'F', src: 1 },
+      { name: 'vox_holdon_02', cat: 'vocal', dur: '1.4s', key: 'F', src: 1 },
+      { name: 'chord_manilow_01', cat: 'chord', dur: '2.0s', key: 'Ab', src: 2 },
+      { name: 'chord_manilow_02', cat: 'chord', dur: '1.6s', key: 'Ab', src: 2 },
+      { name: 'chord_sledge_01', cat: 'chord', dur: '1.8s', key: 'Bb', src: 3 },
+      { name: 'tex_savedmylife_01', cat: 'texture', dur: '3.2s', key: '-', src: 0 },
+      { name: 'tex_holdon_01', cat: 'texture', dur: '2.4s', key: '-', src: 1 },
+      { name: 'tex_sledge_01', cat: 'texture', dur: '4.0s', key: '-', src: 3 },
+      { name: 'perc_savedmylife_01', cat: 'perc', dur: '0.3s', key: '-', src: 0 },
+      { name: 'perc_holdon_01', cat: 'perc', dur: '0.2s', key: '-', src: 1 },
+      { name: 'perc_holdon_02', cat: 'perc', dur: '0.4s', key: '-', src: 1 },
+      { name: 'perc_manilow_01', cat: 'perc', dur: '0.2s', key: '-', src: 2 },
+      { name: 'perc_sledge_01', cat: 'perc', dur: '0.3s', key: '-', src: 3 },
+      { name: 'perc_sledge_02', cat: 'perc', dur: '0.5s', key: '-', src: 3 },
+      { name: 'hit_savedmylife_01', cat: 'oneshot', dur: '0.1s', key: 'Eb', src: 0 },
+      { name: 'hit_holdon_01', cat: 'oneshot', dur: '0.15s', key: 'F', src: 1 },
+      { name: 'vox_manilow_01', cat: 'vocal', dur: '0.9s', key: 'Ab', src: 2 },
+      { name: 'chord_savedmylife_01', cat: 'chord', dur: '2.2s', key: 'Eb', src: 0 },
+      { name: 'tex_manilow_01', cat: 'texture', dur: '2.8s', key: '-', src: 2 },
+      { name: 'hit_manilow_01', cat: 'oneshot', dur: '0.12s', key: 'Ab', src: 2 },
+      { name: 'hit_sledge_01', cat: 'oneshot', dur: '0.08s', key: 'Bb', src: 3 },
+      { name: 'vox_sledge_01', cat: 'vocal', dur: '1.1s', key: 'Bb', src: 3 },
+    ];
+
+    const tracks = [
+      { num: 1, blocks: [
+        { type: 'vocal', name: 'vox_savedmylife_01', left: 80, width: 90 },
+        { type: 'vocal', name: 'vox_holdon_01', left: 200, width: 60 },
+        { type: 'vocal', name: 'vox_savedmylife_02', left: 340, width: 120 },
+        { type: 'vocal', name: 'vox_holdon_02', left: 520, width: 140 },
+        { type: 'vocal', name: 'vox_manilow_01', left: 720, width: 95 },
+      ]},
+      { num: 2, blocks: [
+        { type: 'chord', name: 'chord_manilow_01', left: 60, width: 180 },
+        { type: 'chord', name: 'chord_sledge_01', left: 260, width: 160 },
+        { type: 'chord', name: 'chord_savedmylife_01', left: 460, width: 200 },
+        { type: 'chord', name: 'chord_manilow_02', left: 700, width: 150 },
+      ]},
+      { num: 3, blocks: [
+        { type: 'texture', name: 'tex_savedmylife_01', left: 60, width: 280 },
+        { type: 'texture', name: 'tex_holdon_01', left: 380, width: 220 },
+        { type: 'texture', name: 'tex_sledge_01', left: 640, width: 300 },
+      ]},
+      { num: 4, blocks: [
+        { type: 'perc', name: 'perc_holdon_01', left: 80, width: 30 },
+        { type: 'perc', name: 'perc_sledge_01', left: 140, width: 35 },
+        { type: 'perc', name: 'perc_holdon_02', left: 200, width: 40 },
+        { type: 'perc', name: 'perc_manilow_01', left: 260, width: 25 },
+        { type: 'perc', name: 'perc_savedmylife_01', left: 320, width: 30 },
+        { type: 'perc', name: 'perc_sledge_02', left: 380, width: 45 },
+        { type: 'perc', name: 'perc_holdon_01', left: 440, width: 30 },
+        { type: 'perc', name: 'perc_sledge_01', left: 500, width: 35 },
+        { type: 'perc', name: 'perc_holdon_02', left: 560, width: 40 },
+        { type: 'perc', name: 'perc_manilow_01', left: 630, width: 25 },
+        { type: 'perc', name: 'perc_savedmylife_01', left: 700, width: 30 },
+        { type: 'perc', name: 'perc_sledge_02', left: 770, width: 45 },
+      ]},
+      { num: 5, blocks: [
+        { type: 'oneshot', name: 'hit_savedmylife_01', left: 140, width: 20 },
+        { type: 'oneshot', name: 'hit_holdon_01', left: 320, width: 22 },
+        { type: 'oneshot', name: 'hit_manilow_01', left: 500, width: 18 },
+        { type: 'oneshot', name: 'hit_sledge_01', left: 700, width: 15 },
+      ]},
+    ];
+
+    const catColors = {
+      vocal: 'var(--accent)', chord: 'var(--blue)',
+      texture: '#9B59B6', perc: 'var(--green)', oneshot: 'var(--yellow)'
+    };
+
+    // --- Render sources ---
+    const sourceList = document.getElementById('sourceList');
+    sources.forEach((s, i) => {
+      const card = document.createElement('div');
+      card.className = 'source-card' + (i === 0 ? ' active' : '');
+      card.innerHTML = `
+        <div class="source-name">${s.name}</div>
+        <div class="source-meta"><span>${s.bpm} BPM</span><span>${s.key}</span><span>${s.duration}</span></div>
+        <div class="source-waveform"><canvas data-src="${i}"></canvas></div>
+      `;
+      sourceList.appendChild(card);
+    });
+
+    // --- Render fragments ---
+    const fragmentList = document.getElementById('fragmentList');
+    function renderFragments(cat) {
+      fragmentList.innerHTML = '';
+      const filtered = cat === 'all' ? fragments : fragments.filter(f => f.cat === cat);
+      document.getElementById('fragCount').textContent = `${filtered.length} fragments`;
+      filtered.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'fragment-item';
+        item.draggable = true;
+        item.innerHTML = `
+          <div class="frag-color" style="background:${catColors[f.cat]}"></div>
+          <div class="frag-wave"><canvas data-frag="${f.name}"></canvas></div>
+          <div class="frag-info">
+            <div class="frag-name">${f.name}</div>
+            <div class="frag-meta">${f.dur} / ${f.key}</div>
+          </div>
+          <div class="frag-play">&#9654;</div>
+        `;
+        fragmentList.appendChild(item);
+      });
+      drawMiniWaveforms();
+    }
+    renderFragments('all');
+
+    document.querySelectorAll('.fragment-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.fragment-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderFragments(tab.dataset.cat);
+      });
+    });
+
+    // --- Render ruler ---
+    const rulerMarks = document.getElementById('rulerMarks');
+    for (let i = 1; i <= 16; i++) {
+      const mark = document.createElement('div');
+      mark.className = 'ruler-mark';
+      mark.innerHTML = `<span>${i}</span>`;
+      rulerMarks.appendChild(mark);
+    }
+
+    // --- Render tracks ---
+    const timelineTracks = document.getElementById('timelineTracks');
+    tracks.forEach(t => {
+      const track = document.createElement('div');
+      track.className = 'track';
+      track.innerHTML = `
+        <div class="track-header">
+          <span class="track-num">${t.num}</span>
+          <div class="track-controls">
+            <button class="track-btn mute" title="Mute">M</button>
+            <button class="track-btn solo" title="Solo">S</button>
+          </div>
+        </div>
+        <div class="track-content">
+          ${t.blocks.map(b => `
+            <div class="sample-block ${b.type}" style="left:${b.left}px;width:${b.width}px" draggable="true">
+              <canvas class="block-waveform"></canvas>
+              <span class="block-label">${b.name}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      timelineTracks.appendChild(track);
+    });
+
+    // --- Waveform drawing utility ---
+    function drawMiniWave(canvas, color, seed) {
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0) return;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      const w = rect.width, h = rect.height, mid = h / 2;
+      ctx.fillStyle = color || 'rgba(232,56,13,0.4)';
+      const bars = Math.max(Math.floor(w / 2), 10);
+      for (let i = 0; i < bars; i++) {
+        const s = seed + i;
+        const amp = Math.sin(s * 0.3) * 0.3 + Math.sin(s * 0.7) * 0.2 + Math.sin(s * 1.3) * 0.15;
+        const barH = Math.abs(amp) * h * 0.85 + 1;
+        ctx.fillRect(i * 2, mid - barH / 2, 1.5, barH);
+      }
+    }
+
+    function drawMiniWaveforms() {
+      document.querySelectorAll('.source-waveform canvas').forEach((c, i) => {
+        drawMiniWave(c, 'rgba(232,56,13,0.35)', i * 47);
+      });
+      document.querySelectorAll('.frag-wave canvas').forEach((c, i) => {
+        drawMiniWave(c, 'rgba(240,240,240,0.25)', i * 31);
+      });
+    }
+
+    function drawBlockWaveforms() {
+      document.querySelectorAll('.block-waveform').forEach((c, i) => {
+        drawMiniWave(c, 'rgba(255,255,255,0.3)', i * 23);
+      });
+    }
+
+    setTimeout(() => { drawMiniWaveforms(); drawBlockWaveforms(); }, 100);
+    window.addEventListener('resize', () => { drawMiniWaveforms(); drawBlockWaveforms(); });
+
+    // --- Vibe mixer ---
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+      slider.addEventListener('input', () => {
+        const val = slider.dataset.param === 'tempo' ? slider.value : slider.value + '%';
+        slider.closest('.vibe-control').querySelector('.vibe-value').textContent = val;
+        if (slider.dataset.param === 'tempo') {
+          document.getElementById('bpmDisplay').textContent = slider.value;
+        }
+      });
+    });
+
+    // --- Transport ---
+    let playing = false;
+    let playheadPos = 60;
+    let animFrame = null;
+    const playhead = document.getElementById('playhead');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const transportTime = document.getElementById('transportTime');
+
+    function formatTime(ms) {
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      const milli = Math.floor(ms % 1000);
+      return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(milli).padStart(3,'0')}`;
+    }
+
+    let startTime = 0;
+    function animate(ts) {
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
+      playheadPos = 60 + (elapsed * 0.08);
+      if (playheadPos > 960) { playheadPos = 60; startTime = ts; }
+      playhead.style.left = playheadPos + 'px';
+      transportTime.textContent = formatTime(elapsed);
+      if (playing) animFrame = requestAnimationFrame(animate);
+    }
+
+    playBtn.addEventListener('click', () => {
+      playing = !playing;
+      if (playing) {
+        startTime = 0;
+        animFrame = requestAnimationFrame(animate);
+        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+      } else {
+        cancelAnimationFrame(animFrame);
+        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,5 19,12 8,19"/></svg>';
+      }
+    });
+
+    stopBtn.addEventListener('click', () => {
+      playing = false;
+      cancelAnimationFrame(animFrame);
+      playheadPos = 60;
+      playhead.style.left = '60px';
+      transportTime.textContent = '00:00.000';
+      startTime = 0;
+      playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="8,5 19,12 8,19"/></svg>';
+    });
+
+    // --- Mute/Solo toggles ---
+    document.addEventListener('click', e => {
+      if (e.target.classList.contains('track-btn')) {
+        e.target.classList.toggle('active');
+      }
+    });
+
+    // --- Source card select ---
+    document.addEventListener('click', e => {
+      const card = e.target.closest('.source-card');
+      if (card) {
+        document.querySelectorAll('.source-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      }
+    });
+
+    // --- Simple drag for sample blocks ---
+    let dragBlock = null, dragOffsetX = 0;
+    document.addEventListener('mousedown', e => {
+      const block = e.target.closest('.sample-block');
+      if (!block) return;
+      dragBlock = block;
+      dragOffsetX = e.clientX - block.getBoundingClientRect().left;
+      block.style.zIndex = '20';
+      block.style.opacity = '0.8';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragBlock) return;
+      const parent = dragBlock.parentElement.getBoundingClientRect();
+      let newLeft = e.clientX - parent.left - dragOffsetX;
+      newLeft = Math.max(0, newLeft);
+      dragBlock.style.left = newLeft + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (dragBlock) {
+        dragBlock.style.zIndex = '';
+        dragBlock.style.opacity = '';
+        dragBlock = null;
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -693,7 +693,7 @@
     // API Integration & Functional Wiring
     // =========================================================================
 
-    const API_BASE = ''; // Will be set after Modal deploy
+    const API_BASE = 'https://heyitskim-ai--discovery-backend-web.modal.run'; // Modal backend
 
     // --- State ---
     let currentSessionId = null;
@@ -719,14 +719,14 @@
       }
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
+      const res = await fetch(`${API_BASE}/decompose`, { method: 'POST', body: formData });
       if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
       return res.json();
     }
 
     async function getFragments(sessionId) {
       if (!API_BASE) return null;
-      const res = await fetch(`${API_BASE}/sessions/${sessionId}/fragments`);
+      const res = await fetch(`${API_BASE}/fragments/${sessionId}`);
       if (!res.ok) throw new Error(`Get fragments failed: ${res.status}`);
       return res.json();
     }

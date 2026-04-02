@@ -16,7 +16,7 @@ volume = modal.Volume.from_name("discovery-fragments", create_if_missing=True)
 # TODO: Create a GitHub OAuth App at https://github.com/settings/developers
 # Set these as Modal secrets or environment variables
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "Ov23ctI8QmIOUfJiDchk")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "39a3533b8109aac22ea84b77a36929208c6064c6z")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "39a3533b8109aac22ea84b77a36929208c6064c6")
 
 volume = modal.Volume.from_name("discovery-fragments", create_if_missing=True)
 

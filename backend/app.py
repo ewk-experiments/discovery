@@ -25,8 +25,8 @@ gpu_image = (
     modal.Image.debian_slim(python_version="3.10")
     .apt_install("ffmpeg", "libsndfile1", "git")
     .pip_install(
-        "torch>=2.1.0",
-        "torchaudio>=2.1.0",
+        "torch>=2.1.0,<2.5.0",
+        "torchaudio>=2.1.0,<2.5.0",
         "demucs",
         "librosa>=0.10.0",
         "numpy>=1.24.0",
@@ -221,7 +221,12 @@ def decompose_track(audio_bytes: bytes, filename: str, session_id: str):
     
     # Fallback to lighter model if htdemucs_ft fails
     if result.returncode != 0:
-        print(f"htdemucs_ft failed: {result.stderr}, trying htdemucs...")
+        print(f"htdemucs_ft failed stdout: {result.stdout}")
+        print(f"htdemucs_ft failed stderr: {result.stderr}")
+        print(f"Trying htdemucs...")
+        if os.path.exists(demucs_out):
+            import shutil
+            shutil.rmtree(demucs_out)
         result = subprocess.run(
             [
                 "python", "-m", "demucs",
@@ -229,8 +234,12 @@ def decompose_track(audio_bytes: bytes, filename: str, session_id: str):
                 "-o", demucs_out,
                 input_path,
             ],
-            check=True, capture_output=True, text=True,
+            capture_output=True, text=True,
         )
+        if result.returncode != 0:
+            print(f"htdemucs also failed stdout: {result.stdout}")
+            print(f"htdemucs also failed stderr: {result.stderr}")
+            raise RuntimeError(f"Demucs failed: {result.stderr[-500:]}")
 
     # Find stem files (handle both htdemucs_ft and htdemucs model names)
     track_name = os.path.splitext(os.path.basename(input_path))[0]

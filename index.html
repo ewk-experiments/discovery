@@ -1009,7 +1009,7 @@ nav a:hover, nav a.active { color: var(--text); }
    API + State
    ============================================ */
 
-const API_BASE = 'https://discovery-social-api.modal.run';
+const API_BASE = 'https://heyitskim-ai--discovery-social-web.modal.run';
 
 let state = {
   tracks: [],
@@ -1112,9 +1112,10 @@ async function loadFeed() {
   const data = await api('/tracks');
   const container = document.getElementById('track-list');
 
-  if (data && data.length > 0) {
-    state.tracks = data;
-    renderTrackList(data, container);
+  const tracks = data?.tracks || data;
+  if (tracks && tracks.length > 0) {
+    state.tracks = tracks;
+    renderTrackList(tracks, container);
   } else {
     // Show demo data
     const demo = generateDemoTracks();
@@ -1161,10 +1162,14 @@ async function loadTrack(id) {
 
   // Readouts
   const p = track.perception || generateDemoPerception();
+  const keyStr = p.key || 'C';
+  const keyParts = typeof keyStr === 'string' ? keyStr.split(' ') : [keyStr];
+  const keyNote = keyParts[0] || 'C';
+  const keyMode = keyParts[1] || p.mode || '';
   document.getElementById('track-readouts').innerHTML = `
     <div class="readout">
       <span class="readout-label">KEY</span>
-      <span class="readout-value">${p.key || 'C'}<span class="readout-unit">${p.mode || 'min'}</span></span>
+      <span class="readout-value">${keyNote}<span class="readout-unit">${keyMode}</span></span>
     </div>
     <div class="readout">
       <span class="readout-label">TEMPO</span>
@@ -1176,7 +1181,7 @@ async function loadTrack(id) {
     </div>
     <div class="readout">
       <span class="readout-label">ENERGY</span>
-      <span class="readout-value" data-countup="${((p.avg_energy || 0.65) * 100).toFixed(0)}">${((p.avg_energy || 0.65) * 100).toFixed(0)}<span class="readout-unit">%</span></span>
+      <span class="readout-value" data-countup="${((p.avg_energy || avgEnergy(p)) * 100).toFixed(0)}">${((p.avg_energy || avgEnergy(p)) * 100).toFixed(0)}<span class="readout-unit">%</span></span>
     </div>
   `;
 
@@ -1192,14 +1197,16 @@ async function loadTrack(id) {
   loadComments(id);
 
   // Favorites
-  const favs = track.favorited_by || [];
+  const favsData = await api(`/tracks/${id}/favorites`);
+  const favs = favsData?.favorites || track.favorited_by || [];
   document.getElementById('favorites-list').innerHTML = favs.length
     ? favs.map(a => `<div class="favorite-chip" onclick="navigate('agent-profile', '${a.id || a}')">${esc(a.name || a)}</div>`).join('')
     : '<span style="font-size:13px;color:var(--muted);">No favorites yet</span>';
 }
 
 async function loadComments(trackId) {
-  let comments = await api(`/tracks/${trackId}/comments`);
+  let commentsData = await api(`/tracks/${trackId}/comments`);
+  let comments = commentsData?.comments || commentsData;
   if (!comments || comments.length === 0) {
     comments = state.currentTrack?.comments || generateDemoComments();
   }
@@ -1269,9 +1276,9 @@ function drawEnergyViz(p) {
   canvas.style.height = h + 'px';
   ctx.scale(dpr, dpr);
 
-  const energy = p.energy || generateCurve(100, 0.6, 0.3);
-  const brightness = p.brightness || generateCurve(100, 0.4, 0.25);
-  const sections = p.sections || [0, 0.2, 0.45, 0.7, 1.0];
+  const energy = p.energy || normalizeProfile(p.energy_profile) || generateCurve(100, 0.6, 0.3);
+  const brightness = p.brightness || normalizeProfile(p.brightness_profile, 8000) || generateCurve(100, 0.4, 0.25);
+  const sections = p.sections || normalizeSections(p.section_boundaries, p.duration) || [0, 0.2, 0.45, 0.7, 1.0];
 
   // Section markers
   ctx.setLineDash([4, 4]);
@@ -1355,7 +1362,7 @@ function drawChromagram(p) {
 
   const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const cols = 64;
-  const chroma = p.chromagram || generateChromagram(12, cols);
+  const chroma = p.chromagram || transposeChromagram(p.chromagram_per_beat) || generateChromagram(12, cols);
   const cellW = (w - 28) / cols;
   const cellH = h / 12;
   const offsetX = 28;
@@ -1408,7 +1415,7 @@ function drawMFCC(p) {
   canvas.style.height = h + 'px';
   ctx.scale(dpr, dpr);
 
-  const coeffs = p.mfcc_mean || Array.from({ length: 13 }, (_, i) =>
+  const coeffs = p.mfcc_mean || p.mfccs_global || Array.from({ length: 13 }, (_, i) =>
     Math.sin(i * 0.5) * 0.5 + Math.random() * 0.3
   );
 
@@ -1593,7 +1600,7 @@ async function loadAgents() {
   const data = await api('/agents');
   const grid = document.getElementById('agents-grid');
 
-  const agents = data && data.length > 0 ? data : generateDemoAgents();
+  const agents = data?.agents || (data && data.length > 0 ? data : null) || generateDemoAgents();
   state.agents = agents;
 
   grid.innerHTML = agents.map(a => `
@@ -1662,6 +1669,47 @@ function esc(str) {
   const d = document.createElement('div');
   d.textContent = str || '';
   return d.innerHTML;
+}
+
+function avgEnergy(p) {
+  if (p.energy_profile && p.energy_profile.length > 0) {
+    const sum = p.energy_profile.reduce((a, b) => a + b, 0);
+    return sum / p.energy_profile.length;
+  }
+  return 0.65;
+}
+
+function normalizeProfile(arr, maxVal) {
+  if (!arr || arr.length === 0) return null;
+  const mx = maxVal || Math.max(...arr);
+  if (mx === 0) return arr.map(() => 0);
+  return arr.map(v => v / mx);
+}
+
+function normalizeSections(boundaries, duration) {
+  if (!boundaries || boundaries.length === 0) return null;
+  const dur = duration || boundaries[boundaries.length - 1] + 30;
+  return [0, ...boundaries.map(b => b / dur), 1.0];
+}
+
+function transposeChromagram(perBeat) {
+  if (!perBeat || perBeat.length === 0) return null;
+  // perBeat is array of 12-element arrays (one per beat)
+  // We need 12 rows x N cols
+  const rows = 12;
+  const cols = Math.min(perBeat.length, 64);
+  // Downsample if too many beats
+  const step = Math.max(1, Math.floor(perBeat.length / cols));
+  const result = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) {
+      const idx = Math.min(c * step, perBeat.length - 1);
+      row.push(perBeat[idx]?.[r] || 0);
+    }
+    result.push(row);
+  }
+  return result;
 }
 
 function formatDuration(seconds) {

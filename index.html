@@ -321,6 +321,7 @@ nav a:hover, nav a.active { color: var(--text); }
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   margin-bottom: 40px;
+  flex-wrap: wrap;
 }
 
 .readout {
@@ -875,19 +876,75 @@ nav a:hover, nav a.active { color: var(--text); }
       </div>
     </div>
 
+    <!-- Spectral Flux -->
+    <div class="viz-section">
+      <div class="viz-label">SPECTRAL FLUX — TEXTURE CHANGE RATE</div>
+      <div class="viz-canvas-wrap">
+        <canvas id="viz-flux" height="140"></canvas>
+      </div>
+    </div>
+
     <!-- Chromagram -->
     <div class="viz-section">
-      <div class="viz-label">CHROMAGRAM</div>
+      <div class="viz-label">CHROMAGRAM — HARMONIC CONTENT</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-chroma" height="180"></canvas>
       </div>
     </div>
 
+    <!-- Chord Progression -->
+    <div class="viz-section">
+      <div class="viz-label">CHORD PROGRESSION</div>
+      <div class="viz-canvas-wrap">
+        <canvas id="viz-chords" height="80"></canvas>
+      </div>
+    </div>
+
+    <!-- Onset Density -->
+    <div class="viz-section">
+      <div class="viz-label">ONSET DENSITY — TRANSIENT ACTIVITY</div>
+      <div class="viz-canvas-wrap">
+        <canvas id="viz-onsets" height="120"></canvas>
+      </div>
+    </div>
+
     <!-- MFCC -->
     <div class="viz-section">
-      <div class="viz-label">MFCC SUMMARY</div>
+      <div class="viz-label">MFCC TIMBRAL FINGERPRINT</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-mfcc" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- Spectral Rolloff + Bandwidth -->
+    <div class="viz-section">
+      <div class="viz-label">SPECTRAL ROLLOFF / BANDWIDTH</div>
+      <div class="viz-canvas-wrap">
+        <canvas id="viz-rolloff" height="160"></canvas>
+      </div>
+    </div>
+
+    <!-- Zero Crossing Rate -->
+    <div class="viz-section">
+      <div class="viz-label">ZERO CROSSING RATE — PERCUSSIVE VS TONAL</div>
+      <div class="viz-canvas-wrap">
+        <canvas id="viz-zcr" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- Loudness Per Section -->
+    <div class="viz-section">
+      <div class="viz-label">LOUDNESS MAP — PSEUDO-LUFS PER SECTION</div>
+      <div class="viz-canvas-wrap">
+        <canvas id="viz-loudness" height="140"></canvas>
+      </div>
+    </div>
+
+    <!-- Spectral Contrast -->
+    <div class="viz-section">
+      <div class="viz-label">SPECTRAL CONTRAST — 7-BAND ANALYSIS</div>
+      <div class="viz-canvas-wrap">
+        <canvas id="viz-contrast" height="160"></canvas>
       </div>
     </div>
 
@@ -1180,16 +1237,39 @@ async function loadTrack(id) {
       <span class="readout-value">${formatDuration(p.duration || 240)}</span>
     </div>
     <div class="readout">
-      <span class="readout-label">ENERGY</span>
-      <span class="readout-value" data-countup="${((p.avg_energy || avgEnergy(p)) * 100).toFixed(0)}">${((p.avg_energy || avgEnergy(p)) * 100).toFixed(0)}<span class="readout-unit">%</span></span>
+      <span class="readout-label">STABILITY</span>
+      <span class="readout-value" data-countup="${((p.tempo_stability || 0) * 100).toFixed(0)}">${((p.tempo_stability || 0) * 100).toFixed(0)}<span class="readout-unit">%</span></span>
+    </div>
+    <div class="readout">
+      <span class="readout-label">DYN RANGE</span>
+      <span class="readout-value" data-countup="${(p.dynamic_range_db || 0).toFixed(0)}">${(p.dynamic_range_db || 0).toFixed(0)}<span class="readout-unit">dB</span></span>
+    </div>
+    <div class="readout">
+      <span class="readout-label">ONSETS</span>
+      <span class="readout-value" data-countup="${(p.onsets || []).length}">${(p.onsets || []).length}</span>
+    </div>
+    <div class="readout">
+      <span class="readout-label">SECTIONS</span>
+      <span class="readout-value" data-countup="${(p.section_boundaries || []).length}">${(p.section_boundaries || []).length}</span>
+    </div>
+    <div class="readout">
+      <span class="readout-label">BEATS</span>
+      <span class="readout-value" data-countup="${(p.beats || []).length}">${(p.beats || []).length}</span>
     </div>
   `;
 
   // Draw visualizations
   setTimeout(() => {
     drawEnergyViz(p);
+    drawSpectralFlux(p);
     drawChromagram(p);
+    drawChordProgression(p);
+    drawOnsetDensity(p);
     drawMFCC(p);
+    drawRolloffBandwidth(p);
+    drawZeroCrossingRate(p);
+    drawLoudnessMap(p);
+    drawSpectralContrast(p);
     animateCountUps();
   }, 100);
 
@@ -1460,6 +1540,434 @@ function drawMFCC(p) {
   }
 
   requestAnimationFrame(draw);
+}
+
+/* ============================================
+   Spectral Flux
+   ============================================ */
+
+function drawSpectralFlux(p) {
+  const canvas = document.getElementById('viz-flux');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 48;
+  const h = 140;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const flux = p.spectral_flux || [];
+  if (flux.length === 0) { ctx.fillStyle = '#8A8A8A'; ctx.font = '11px "JetBrains Mono"'; ctx.fillText('NO DATA', w/2 - 25, h/2); return; }
+  const maxFlux = Math.max(...flux);
+
+  let progress = 0;
+  function draw() {
+    progress = Math.min(1, progress + 0.02);
+    ctx.clearRect(0, 0, w, h);
+    const count = Math.floor(flux.length * progress);
+    const barW = w / flux.length;
+
+    for (let i = 0; i < count; i++) {
+      const val = flux[i] / maxFlux;
+      const barH = val * (h - 16);
+      const x = i * barW;
+      // Color gradient from muted to accent based on intensity
+      const r = Math.floor(138 + (232 - 138) * val);
+      const g = Math.floor(138 + (56 - 138) * val);
+      const b = Math.floor(138 + (13 - 138) * val);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, h - barH - 8, barW - 0.5, barH);
+    }
+
+    if (progress < 1) requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+/* ============================================
+   Chord Progression
+   ============================================ */
+
+function drawChordProgression(p) {
+  const canvas = document.getElementById('viz-chords');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 48;
+  const h = 80;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const chords = p.chord_progression || [];
+  const dur = p.duration || 240;
+  if (chords.length === 0) { ctx.fillStyle = '#8A8A8A'; ctx.font = '11px "JetBrains Mono"'; ctx.fillText('NO DATA', w/2 - 25, h/2); return; }
+
+  // Color map for chord roots
+  const rootColors = { 'C': '#111', 'C#': '#333', 'D': '#E8380D', 'D#': '#c42f0b', 'E': '#555', 'F': '#777', 'F#': '#999', 'G': '#444', 'G#': '#666', 'A': '#222', 'A#': '#888', 'B': '#aaa' };
+
+  let progress = 0;
+  function draw() {
+    progress = Math.min(1, progress + 0.03);
+    ctx.clearRect(0, 0, w, h);
+    const count = Math.floor(chords.length * progress);
+
+    for (let i = 0; i < count; i++) {
+      const chord = chords[i];
+      const nextTime = chords[i + 1]?.time || dur;
+      const x = (chord.time / dur) * w;
+      const blockW = ((nextTime - chord.time) / dur) * w;
+      const root = chord.chord?.replace(/maj|min|7/g, '') || 'C';
+      ctx.fillStyle = rootColors[root] || '#8A8A8A';
+      ctx.globalAlpha = chord.chord === 'N' ? 0.1 : 0.7;
+      ctx.fillRect(x, 8, blockW - 1, h - 24);
+      ctx.globalAlpha = 1;
+
+      // Label (skip if too narrow)
+      if (blockW > 20 && chord.chord !== 'N') {
+        ctx.font = '9px "JetBrains Mono"';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(chord.chord, x + 3, h / 2 + 3);
+      }
+    }
+
+    // Timeline
+    ctx.strokeStyle = '#E0DEDA';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h - 8);
+    ctx.lineTo(w, h - 8);
+    ctx.stroke();
+
+    // Time markers
+    ctx.font = '8px "JetBrains Mono"';
+    ctx.fillStyle = '#8A8A8A';
+    for (let t = 0; t <= dur; t += 30) {
+      const x = (t / dur) * w;
+      ctx.fillText(formatDuration(t), x, h);
+    }
+
+    if (progress < 1) requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+/* ============================================
+   Onset Density
+   ============================================ */
+
+function drawOnsetDensity(p) {
+  const canvas = document.getElementById('viz-onsets');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 48;
+  const h = 120;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const onsets = p.onsets || [];
+  const dur = p.duration || 240;
+  if (onsets.length === 0) { ctx.fillStyle = '#8A8A8A'; ctx.font = '11px "JetBrains Mono"'; ctx.fillText('NO DATA', w/2 - 25, h/2); return; }
+
+  // Bin onsets into 1-second buckets
+  const bins = new Array(Math.ceil(dur)).fill(0);
+  onsets.forEach(t => { const bin = Math.floor(t); if (bin < bins.length) bins[bin]++; });
+  const maxBin = Math.max(...bins);
+
+  let progress = 0;
+  function draw() {
+    progress = Math.min(1, progress + 0.02);
+    ctx.clearRect(0, 0, w, h);
+    const count = Math.floor(bins.length * progress);
+    const barW = w / bins.length;
+
+    for (let i = 0; i < count; i++) {
+      const val = bins[i] / maxBin;
+      const barH = val * (h - 16);
+      const x = i * barW;
+      ctx.fillStyle = val > 0.7 ? '#E8380D' : val > 0.4 ? '#555' : '#ccc';
+      ctx.fillRect(x, h - barH - 8, Math.max(barW - 0.5, 1), barH);
+    }
+
+    // Average line
+    const avg = bins.reduce((a, b) => a + b, 0) / bins.length;
+    const avgY = h - (avg / maxBin) * (h - 16) - 8;
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = '#E8380D';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, avgY);
+    ctx.lineTo(w * progress, avgY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Label
+    ctx.font = '9px "JetBrains Mono"';
+    ctx.fillStyle = '#E8380D';
+    ctx.fillText(`AVG ${avg.toFixed(1)}/s`, w * progress + 4, avgY + 3);
+
+    if (progress < 1) requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+/* ============================================
+   Spectral Rolloff + Bandwidth
+   ============================================ */
+
+function drawRolloffBandwidth(p) {
+  const canvas = document.getElementById('viz-rolloff');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 48;
+  const h = 160;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const rolloff = p.spectral_rolloff || [];
+  const bandwidth = p.spectral_bandwidth || [];
+  if (rolloff.length === 0 && bandwidth.length === 0) { ctx.fillStyle = '#8A8A8A'; ctx.font = '11px "JetBrains Mono"'; ctx.fillText('NO DATA', w/2 - 25, h/2); return; }
+
+  const maxRolloff = Math.max(...(rolloff.length ? rolloff : [1]));
+  const maxBandwidth = Math.max(...(bandwidth.length ? bandwidth : [1]));
+  const margin = 12;
+
+  // Draw rolloff as filled area
+  if (rolloff.length > 0) {
+    animateLineDraw(ctx, rolloff.map(v => v / maxRolloff), w, h, '#111', 0.12, 0);
+  }
+
+  // Draw bandwidth as line overlay
+  if (bandwidth.length > 0) {
+    animateLineDraw(ctx, bandwidth.map(v => v / maxBandwidth), w, h, '#E8380D', 0.06, 200);
+  }
+
+  // Legend
+  setTimeout(() => {
+    ctx.font = '9px "JetBrains Mono"';
+    ctx.fillStyle = '#111';
+    ctx.fillRect(w - 120, 8, 8, 8);
+    ctx.fillText('ROLLOFF', w - 108, 16);
+    ctx.fillStyle = '#E8380D';
+    ctx.fillRect(w - 120, 22, 8, 8);
+    ctx.fillText('BANDWIDTH', w - 108, 30);
+  }, 500);
+}
+
+/* ============================================
+   Zero Crossing Rate
+   ============================================ */
+
+function drawZeroCrossingRate(p) {
+  const canvas = document.getElementById('viz-zcr');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 48;
+  const h = 120;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const zcr = p.zero_crossing_rate || [];
+  if (zcr.length === 0) { ctx.fillStyle = '#8A8A8A'; ctx.font = '11px "JetBrains Mono"'; ctx.fillText('NO DATA', w/2 - 25, h/2); return; }
+
+  const maxZcr = Math.max(...zcr);
+
+  let progress = 0;
+  function draw() {
+    progress = Math.min(1, progress + 0.02);
+    ctx.clearRect(0, 0, w, h);
+    const count = Math.floor(zcr.length * progress);
+
+    // Fill area
+    ctx.beginPath();
+    ctx.moveTo(0, h - 8);
+    for (let i = 0; i < count; i++) {
+      const x = (i / (zcr.length - 1)) * w;
+      const y = 8 + (1 - zcr[i] / maxZcr) * (h - 24);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    const lastX = ((count - 1) / (zcr.length - 1)) * w;
+    ctx.lineTo(lastX, h - 8);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(17, 17, 17, 0.08)';
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    for (let i = 0; i < count; i++) {
+      const x = (i / (zcr.length - 1)) * w;
+      const y = 8 + (1 - zcr[i] / maxZcr) * (h - 24);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // High ZCR = percussive label
+    if (progress >= 1) {
+      const avgZcr = zcr.reduce((a, b) => a + b, 0) / zcr.length;
+      const label = avgZcr / maxZcr > 0.5 ? 'PERCUSSIVE' : 'TONAL';
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.fillStyle = '#E8380D';
+      ctx.fillText(label, w - 80, 20);
+    }
+
+    if (progress < 1) requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+/* ============================================
+   Loudness Map
+   ============================================ */
+
+function drawLoudnessMap(p) {
+  const canvas = document.getElementById('viz-loudness');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 48;
+  const h = 140;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const sections = p.loudness_per_section || [];
+  const dur = p.duration || 240;
+  if (sections.length === 0) { ctx.fillStyle = '#8A8A8A'; ctx.font = '11px "JetBrains Mono"'; ctx.fillText('NO DATA', w/2 - 25, h/2); return; }
+
+  const lufsValues = sections.map(s => s.lufs);
+  const minLufs = Math.min(...lufsValues);
+  const maxLufs = Math.max(...lufsValues);
+  const range = maxLufs - minLufs || 1;
+
+  let progress = 0;
+  function draw() {
+    progress = Math.min(1, progress + 0.03);
+    ctx.clearRect(0, 0, w, h);
+    const count = Math.floor(sections.length * progress);
+
+    for (let i = 0; i < count; i++) {
+      const s = sections[i];
+      const x = (s.start / dur) * w;
+      const blockW = ((s.end - s.start) / dur) * w;
+      const normalized = (s.lufs - minLufs) / range;
+      // Darker = louder
+      const gray = Math.floor(240 - normalized * 200);
+      ctx.fillStyle = `rgb(${gray}, ${gray}, ${gray})`;
+      ctx.fillRect(x, 16, blockW - 1, h - 40);
+
+      // LUFS label
+      if (blockW > 30) {
+        ctx.font = '8px "JetBrains Mono"';
+        ctx.fillStyle = normalized > 0.5 ? '#fff' : '#111';
+        ctx.fillText(`${s.lufs.toFixed(0)}`, x + 3, h / 2 + 2);
+      }
+    }
+
+    // Scale labels
+    ctx.font = '8px "JetBrains Mono"';
+    ctx.fillStyle = '#8A8A8A';
+    ctx.fillText(`${maxLufs.toFixed(0)} LUFS`, 0, 12);
+    ctx.fillText(`${minLufs.toFixed(0)} LUFS`, 0, h - 4);
+
+    if (progress < 1) requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+/* ============================================
+   Spectral Contrast (7 bands)
+   ============================================ */
+
+function drawSpectralContrast(p) {
+  const canvas = document.getElementById('viz-contrast');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 48;
+  const h = 160;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const sections = p.spectral_contrast_per_section || [];
+  if (sections.length === 0) { ctx.fillStyle = '#8A8A8A'; ctx.font = '11px "JetBrains Mono"'; ctx.fillText('NO DATA', w/2 - 25, h/2); return; }
+
+  const bandLabels = ['SUB', 'LOW', 'LO-MID', 'MID', 'HI-MID', 'HIGH', 'AIR'];
+  const dur = p.duration || 240;
+  const cellW = (w - 50) / sections.length;
+  const cellH = (h - 20) / 7;
+  const offsetX = 50;
+
+  // Find global min/max for normalization
+  let allVals = [];
+  sections.forEach(s => s.bands.forEach(v => allVals.push(v)));
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const rangeV = maxV - minV || 1;
+
+  // Band labels
+  ctx.font = '8px "JetBrains Mono"';
+  ctx.fillStyle = '#8A8A8A';
+  ctx.textAlign = 'right';
+  bandLabels.forEach((label, i) => {
+    ctx.fillText(label, 46, i * cellH + cellH / 2 + 12);
+  });
+  ctx.textAlign = 'left';
+
+  // Heatmap
+  let frame = 0;
+  const totalFrames = 35;
+  function drawFrame() {
+    frame++;
+    const visibleCols = Math.ceil((frame / totalFrames) * sections.length);
+
+    for (let col = 0; col < visibleCols; col++) {
+      const s = sections[col];
+      for (let row = 0; row < 7; row++) {
+        const val = (s.bands[row] - minV) / rangeV;
+        // Cool palette: low = light blue-gray, high = deep vermillion
+        const r = Math.floor(220 + (232 - 220) * val);
+        const g = Math.floor(225 + (56 - 225) * val);
+        const b = Math.floor(230 + (13 - 230) * val);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(offsetX + col * cellW, row * cellH + 8, cellW - 0.5, cellH - 0.5);
+      }
+    }
+    if (frame < totalFrames) requestAnimationFrame(drawFrame);
+  }
+  requestAnimationFrame(drawFrame);
 }
 
 /* ============================================

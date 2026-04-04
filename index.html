@@ -363,7 +363,44 @@ nav a:hover, nav a.active { color: var(--text); }
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.viz-desc {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--muted);
   margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.readouts-desc {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 12px 0 32px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 24px;
+}
+
+.readout-explain {
+  display: flex;
+  gap: 6px;
+}
+
+.readout-explain .re-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.readout-explain .re-text {
+  font-size: 11px;
 }
 
 .viz-canvas-wrap {
@@ -867,10 +904,12 @@ nav a:hover, nav a.active { color: var(--text); }
     </div>
 
     <div class="data-readouts" id="track-readouts"></div>
+    <div class="readouts-desc" id="readouts-desc"></div>
 
     <!-- Energy + Brightness -->
     <div class="viz-section">
       <div class="viz-label">ENERGY / BRIGHTNESS</div>
+      <div class="viz-desc">How loud and how bright the track is over time. Energy (black) shows overall volume intensity. Brightness (red) tracks how much high-frequency content is present — higher means sharper, more present sound.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-energy" height="200"></canvas>
       </div>
@@ -879,6 +918,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Spectral Flux -->
     <div class="viz-section">
       <div class="viz-label">SPECTRAL FLUX — TEXTURE CHANGE RATE</div>
+      <div class="viz-desc">How quickly the sound's character is changing at each moment. Tall bars mean the texture is shifting fast — new sounds entering, transitions happening. Low bars mean a steady, consistent sound.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-flux" height="140"></canvas>
       </div>
@@ -887,6 +927,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Chromagram -->
     <div class="viz-section">
       <div class="viz-label">CHROMAGRAM — HARMONIC CONTENT</div>
+      <div class="viz-desc">A piano-roll view of which musical notes are present over time. Each row is a note (C through B), and brighter cells mean that note is louder at that moment. Patterns here reveal the track's harmonic language.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-chroma" height="180"></canvas>
       </div>
@@ -895,6 +936,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Chord Progression -->
     <div class="viz-section">
       <div class="viz-label">CHORD PROGRESSION</div>
+      <div class="viz-desc">The estimated chord at each bar of the song. Each block is a chord — the color represents the root note, and the label shows the full chord name. This is the harmonic skeleton of the track.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-chords" height="80"></canvas>
       </div>
@@ -903,6 +945,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Onset Density -->
     <div class="viz-section">
       <div class="viz-label">ONSET DENSITY — TRANSIENT ACTIVITY</div>
+      <div class="viz-desc">How many distinct sound events (hits, plucks, attacks) happen each second. Tall bars mean lots of activity — busy, dense sections. The red dashed line shows the average. Peaks usually align with drops or climaxes.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-onsets" height="120"></canvas>
       </div>
@@ -911,6 +954,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- MFCC -->
     <div class="viz-section">
       <div class="viz-label">MFCC TIMBRAL FINGERPRINT</div>
+      <div class="viz-desc">A fingerprint of the track's tonal color — what makes it sound warm, metallic, breathy, or hollow. Each bar represents a different dimension of timbre. Think of it as the DNA of how the track actually sounds, independent of pitch or rhythm.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-mfcc" height="120"></canvas>
       </div>
@@ -919,6 +963,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Spectral Rolloff + Bandwidth -->
     <div class="viz-section">
       <div class="viz-label">SPECTRAL ROLLOFF / BANDWIDTH</div>
+      <div class="viz-desc">Rolloff (black) shows where most of the sound's energy lives — the frequency ceiling. Bandwidth (red) shows how spread out the frequencies are. Wide bandwidth = full, rich sound. Narrow = focused, minimal.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-rolloff" height="160"></canvas>
       </div>
@@ -927,6 +972,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Zero Crossing Rate -->
     <div class="viz-section">
       <div class="viz-label">ZERO CROSSING RATE — PERCUSSIVE VS TONAL</div>
+      <div class="viz-desc">How rapidly the audio signal crosses silence. High rates mean noisy, percussive content (drums, clicks, static). Low rates mean smooth, tonal content (pads, bass, sustained notes). Shows the rhythmic vs melodic balance.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-zcr" height="120"></canvas>
       </div>
@@ -935,6 +981,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Loudness Per Section -->
     <div class="viz-section">
       <div class="viz-label">LOUDNESS MAP — PSEUDO-LUFS PER SECTION</div>
+      <div class="viz-desc">How loud each section of the track is in LUFS (the standard for measuring perceived loudness). Darker blocks are louder. This reveals the dynamic journey — where the track breathes and where it hits hardest.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-loudness" height="140"></canvas>
       </div>
@@ -943,6 +990,7 @@ nav a:hover, nav a.active { color: var(--text); }
     <!-- Spectral Contrast -->
     <div class="viz-section">
       <div class="viz-label">SPECTRAL CONTRAST — 7-BAND ANALYSIS</div>
+      <div class="viz-desc">The difference between peaks and valleys in 7 frequency bands (sub-bass through air) across each section. High contrast means clear, defined sounds. Low contrast means dense, muddy, or heavily compressed. Each column is a section, each row is a frequency band.</div>
       <div class="viz-canvas-wrap">
         <canvas id="viz-contrast" height="160"></canvas>
       </div>
@@ -1256,6 +1304,17 @@ async function loadTrack(id) {
       <span class="readout-label">BEATS</span>
       <span class="readout-value" data-countup="${(p.beats || []).length}">${(p.beats || []).length}</span>
     </div>
+  `;
+
+  // Readout explanations
+  document.getElementById('readouts-desc').innerHTML = `
+    <div class="readout-explain"><span class="re-label">Key:</span><span class="re-text">The musical key — the tonal home base of the track</span></div>
+    <div class="readout-explain"><span class="re-label">Tempo:</span><span class="re-text">Speed in beats per minute</span></div>
+    <div class="readout-explain"><span class="re-label">Stability:</span><span class="re-text">How consistent the tempo is — 100% means perfectly locked</span></div>
+    <div class="readout-explain"><span class="re-label">Dyn Range:</span><span class="re-text">Gap between quietest and loudest — higher means more breathing room</span></div>
+    <div class="readout-explain"><span class="re-label">Onsets:</span><span class="re-text">Total distinct sound events detected (every hit, pluck, attack)</span></div>
+    <div class="readout-explain"><span class="re-label">Sections:</span><span class="re-text">Structural changes detected (intro, verse, chorus, etc.)</span></div>
+    <div class="readout-explain"><span class="re-label">Beats:</span><span class="re-text">Total beats tracked by neural network — the timing grid for all analysis</span></div>
   `;
 
   // Draw visualizations
